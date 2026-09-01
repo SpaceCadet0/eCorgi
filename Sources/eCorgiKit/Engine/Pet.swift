@@ -49,9 +49,16 @@ public final class Pet {
 
     private var machine: StateMachine!
 
-    /// Состояния, которые можно перебить реакцией на курсор.
+    /// Спокойные наземные состояния: питомец на опоре и ничем не занят.
+    /// По ним движок решает, что список окон можно опрашивать пореже.
     private static let ambient: Set<BehaviorID> = [.idle, .walk, .sit, .scratch,
                                                    .settleDown, .sleep, .wakeUp]
+
+    /// Из чего питомца может спугнуть курсор.
+    ///
+    /// Сон и укладывание сюда не входят: спящего мышь не поднимает. Разбудить
+    /// его можно, только взяв в руки или через меню в строке меню.
+    private static let startleable: Set<BehaviorID> = ambient.subtracting([.settleDown, .sleep])
     /// Состояния, в которых питомец отдыхает: время в них не идёт в усталость.
     private static let restful: Set<BehaviorID> = [.idle, .sit, .settleDown, .sleep, .wakeUp]
     /// Состояния, которые сами отвечают за отсутствие опоры под лапами.
@@ -191,9 +198,9 @@ public final class Pet {
             machine.force(.fall, pet: self)
             return
         }
-        // Убежать от мыши важнее, чем доспать: проверяем курсор раньше усталости.
+        // Курсор проверяем раньше усталости: спугнуть питомца важнее, чем уложить.
         if settings.reactToCursor,
-           Pet.ambient.contains(state),
+           Pet.startleable.contains(state),
            cursor.distance(to: CGPoint(x: position.x, y: position.y + spriteHeightHint / 2)) < tuning.cursorFleeRadius {
             machine.force(.runFromCursor, pet: self)
             return

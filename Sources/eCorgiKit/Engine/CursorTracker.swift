@@ -7,12 +7,17 @@ public final class CursorTracker {
     public private(set) var location: CGPoint = .zero
     public private(set) var velocity: CGVector = .zero
 
-    public init() {
-        location = NSEvent.mouseLocation
+    /// Откуда берётся положение курсора. Подменяется в тестах: иначе проверить
+    /// реакцию на мышь нельзя — трекер читал бы настоящий курсор машины.
+    private let source: () -> CGPoint
+
+    public init(source: @escaping () -> CGPoint = { NSEvent.mouseLocation }) {
+        self.source = source
+        location = source()
     }
 
     public func update(_ dt: TimeInterval) {
-        let current = NSEvent.mouseLocation
+        let current = source()
         guard dt > 0 else { location = current; return }
         velocity = CGVector(dx: (current.x - location.x) / dt, dy: (current.y - location.y) / dt)
         location = current
