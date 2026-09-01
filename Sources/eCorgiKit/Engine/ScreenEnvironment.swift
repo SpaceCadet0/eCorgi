@@ -108,12 +108,16 @@ public final class ScreenEnvironment {
         let fullBounds: CGRect
         /// Видимые области экранов — без строки меню и Dock.
         let visibleAreas: [CGRect]
+        /// Активное приложение: его переднее окно и есть то единственное,
+        /// с которым питомец имеет дело.
+        let frontmostPID: Int32?
     }
 
     private var screenGeometry: ScreenGeometry {
         ScreenGeometry(primaryMaxY: primaryMaxY,
                        fullBounds: screenBounds,
-                       visibleAreas: NSScreen.screens.map(\.visibleFrame))
+                       visibleAreas: NSScreen.screens.map(\.visibleFrame),
+                       frontmostPID: NSWorkspace.shared.frontmostApplication?.processIdentifier)
     }
 
     /// Высота экрана, задающего начало координат. CoreGraphics отсчитывает
@@ -172,6 +176,7 @@ public final class ScreenEnvironment {
     struct ScannedWindow {
         let rect: CGRect
         let owner: String
+        let ownerPID: Int32
         /// Окно занимает всю видимую область экрана.
         ///
         /// Его края совпадают с краями экрана, так что видимой кромки, за
@@ -230,7 +235,7 @@ public final class ScreenEnvironment {
             return .rejected(owner: owner, reason: "вне экранов")
         }
         let isBackdrop = visibleAreas.contains { fills($0, with: rect) }
-        return .accepted(ScannedWindow(rect: rect, owner: owner, isBackdrop: isBackdrop))
+        return .accepted(ScannedWindow(rect: rect, owner: owner, ownerPID: pid, isBackdrop: isBackdrop))
     }
 
     /// Занимает ли окно видимую область экрана целиком (с небольшим допуском).
@@ -257,39 +262,44 @@ public final class ScreenEnvironment {
     }
 
     private func scanWindows(_ geometry: ScreenGeometry) -> (ledges: [Ledge], walls: [Wall]) {
-        // Список идёт спереди назад — это и есть порядок перекрытия.
         let windows = acceptedWindows(geometry)
-        let rects = windows.map(\.rect)
-
-        var ledges: [Ledge] = []
-        var walls: [Wall] = []
-
-        for (index, window) in windows.enumerated() {
-            let rect = window.rect
-            // Фон в перекрытии участвует, но собственных полок не даёт.
-            let inFront = rects[0..<index]
-            guard !window.isBackdrop else { continue }
-
-            // Верхнюю грань обрезаем окнами, которые лежат перед ней и накрывают её высоту.
-            let topOccluders = inFront.filter { $0.minY < rect.maxY && $0.maxY > rect.maxY - 1 }
-            let topSegments = ScreenEnvironment.subtract(topOccluders.map { ($0.minX, $0.maxX) },
-                                                         from: (rect.minX, rect.maxX))
-
-            let ownTop = topSegments.flatMap {
-                visibleLedges(atY: rect.maxY, from: $0.0, to: $0.1, areas: geometry.visibleAreas)
-            }
-            ledges.append(contentsOf: ownTop)
-
-            walls.append(contentsOf: climbableWalls(of: rect, inFront: inFront,
-                                                    leadingTo: ownTop,
-                                                    visibleAreas: geometry.visibleAreas))
+        guard let front = ScreenEnvironment.frontWindow(among: windows,
+                                                        frontmostPID: geometry.frontmostPID) else {
+            return ([], [])
         }
-        return (ledges, walls)
+        return self.geometry(from: front, visibleAreas: geometry.visibleAreas)
     }
 
-    /// Совпадает ли вертикаль с боковой границей видимой области экрана.
-    static func isFlushWithSide(_ x: CGFloat, of area: CGRect, tolerance: CGFloat = 4) -> Bool {
-        abs(x - area.minX) <= tolerance || abs(x - area.maxX) <= tolerance
+    /// Переднее окно активного приложения.
+    ///
+    /// Список окон идёт спереди назад, поэтому первое окно активного
+    /// приложения в нём и есть переднее. Если у активного приложения окон нет
+    /// (Finder без открытых папок, приложение только со строкой меню), берём
+    /// самое переднее вообще — иначе мир питомца мигал бы при каждом
+    /// переключении на такое приложение.
+    static func frontWindow(among windows: [ScannedWindow], frontmostPID: Int32?) -> ScannedWindow? {
+        if let frontmostPID, let own = windows.first(where: { $0.ownerPID == frontmostPID }) {
+            return own
+        }
+        return windows.first
+    }
+
+    /// Полки и грани, которые даёт одно окно.
+    ///
+    /// Питомец имеет дело только с передним окном. Оно по определению ничем не
+    /// закрыто, поэтому его края — единственная геометрия, в которой можно быть
+    /// уверенным: не нужно ни вычитать перекрытия, ни гадать, видна ли кромка
+    /// окна, лежащего под тремя другими.
+    func geometry(from front: ScannedWindow, visibleAreas: [CGRect]) -> (ledges: [Ledge], walls: [Wall]) {
+        // Окно во весь экран — это фон: его края совпадают с краями экрана,
+        // хвататься не за что.
+        guard !front.isBackdrop else { return ([], []) }
+
+        let tops = visibleLedges(atY: front.rect.maxY,
+                                 from: front.rect.minX,
+                                 to: front.rect.maxX,
+                                 areas: visibleAreas)
+        return (tops, climbableWalls(of: front.rect, leadingTo: tops, visibleAreas: visibleAreas))
     }
 
     /// Кусок верхней грани окна, обрезанный по видимой области экранов.
@@ -311,14 +321,11 @@ public final class ScreenEnvironment {
 
     /// Боковые грани окна, по которым имеет смысл лезть.
     ///
-    /// Годится только та грань, что доходит до собственного верха окна и
-    /// упирается в реально видимый кусок его верхней грани. Иначе получались
-    /// «лестницы в никуда»: перекрывающее окно рвёт боковую грань пополам, и
-    /// у нижнего куска верх — это нижняя кромка чужого окна, где стоять негде.
+    /// Грань годится, если она упирается в видимый кусок верхней грани того же
+    /// окна и не прижата к боку экрана.
     func climbableWalls(of rect: CGRect,
-                                inFront: ArraySlice<CGRect>,
-                                leadingTo tops: [Ledge],
-                                visibleAreas: [CGRect]) -> [Wall] {
+                        leadingTo tops: [Ledge],
+                        visibleAreas: [CGRect]) -> [Wall] {
         guard !tops.isEmpty else { return [] }
         var result: [Wall] = []
 
@@ -329,12 +336,8 @@ public final class ScreenEnvironment {
             // лез бы вверх по пустому краю дисплея.
             guard !visibleAreas.contains(where: { ScreenEnvironment.isFlushWithSide(edgeX, of: $0) }) else { continue }
 
-            let occluders = inFront.filter { $0.minX < edgeX && $0.maxX > edgeX }
-            let segments = ScreenEnvironment.subtract(occluders.map { ($0.minY, $0.maxY) },
-                                                      from: (rect.minY, rect.maxY))
-            // Только верхний кусок: он один заканчивается верхом самого окна.
-            guard let top = segments.last, top.1 >= rect.maxY - 1, top.1 - top.0 >= minWallHeight else { continue }
-            result.append(Wall(x: edgeX, minY: top.0, maxY: top.1, side: side))
+            guard rect.height >= minWallHeight else { continue }
+            result.append(Wall(x: edgeX, minY: rect.minY, maxY: rect.maxY, side: side))
         }
         return result
     }
@@ -350,6 +353,7 @@ public final class ScreenEnvironment {
         let geometry = screenGeometry
         let flipY = geometry.primaryMaxY
 
+        var scanned: [ScannedWindow] = []
         var lines = ["экраны: \(NSScreen.screens.count), начало координат по высоте \(Int(flipY))"]
         for area in geometry.visibleAreas {
             lines.append("  видимая область: x \(Int(area.minX))…\(Int(area.maxX)), y \(Int(area.minY))…\(Int(area.maxY))")
@@ -360,17 +364,20 @@ public final class ScreenEnvironment {
             switch ScreenEnvironment.classify(window, ownPID: ownPID, primaryMaxY: flipY,
                                               minSize: minWindowSize, screenBounds: geometry.fullBounds,
                                               visibleAreas: geometry.visibleAreas) {
-            case .accepted(let scanned):
+            case .accepted(let window):
                 accepted += 1
-                let r = scanned.rect
-                let mark = scanned.isBackdrop ? " [фон, полок не даёт]" : ""
-                lines.append("  + \(scanned.owner): x \(Int(r.minX))…\(Int(r.maxX)), верх \(Int(r.maxY)), низ \(Int(r.minY))\(mark)")
+                scanned.append(window)
+                let r = window.rect
+                let mark = window.isBackdrop ? " [фон, полок не даёт]" : ""
+                lines.append("  + \(window.owner): x \(Int(r.minX))…\(Int(r.maxX)), верх \(Int(r.maxY)), низ \(Int(r.minY))\(mark)")
             case .rejected(let owner, let reason):
                 lines.append("  - \(owner): \(reason)")
             }
         }
 
         lines.append("отобрано окон: \(accepted)")
+        let front = ScreenEnvironment.frontWindow(among: scanned, frontmostPID: geometry.frontmostPID)
+        lines.append("переднее окно: \(front.map { "\($0.owner)\($0.isBackdrop ? " (фон)" : "")" } ?? "нет")")
         for ledge in ledges {
             lines.append("  полка \(ledge.kind) y=\(Int(ledge.y)) x \(Int(ledge.minX))…\(Int(ledge.maxX))")
         }
@@ -386,19 +393,8 @@ public final class ScreenEnvironment {
         CGRect(x: rect.minX, y: primaryMaxY - rect.maxY, width: rect.width, height: rect.height)
     }
 
-    /// Вычитание перекрывающих интервалов из отрезка — так из верхней грани окна
-    /// остаются только реально видимые куски.
-    static func subtract(_ cutouts: [(CGFloat, CGFloat)], from segment: (CGFloat, CGFloat)) -> [(CGFloat, CGFloat)] {
-        var pieces = [segment]
-        for cut in cutouts.sorted(by: { $0.0 < $1.0 }) {
-            var next: [(CGFloat, CGFloat)] = []
-            for piece in pieces {
-                if cut.1 <= piece.0 || cut.0 >= piece.1 { next.append(piece); continue }
-                if cut.0 > piece.0 { next.append((piece.0, cut.0)) }
-                if cut.1 < piece.1 { next.append((cut.1, piece.1)) }
-            }
-            pieces = next
-        }
-        return pieces
+    /// Совпадает ли вертикаль с боковой границей видимой области экрана.
+    static func isFlushWithSide(_ x: CGFloat, of area: CGRect, tolerance: CGFloat = 4) -> Bool {
+        abs(x - area.minX) <= tolerance || abs(x - area.maxX) <= tolerance
     }
 }

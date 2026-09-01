@@ -127,20 +127,14 @@ public final class Pet {
     }
 
     /// Насколько часто сейчас нужен свежий список окон.
+    ///
+    /// Питомец работает только с передним окном, а оно меняется в тот же миг,
+    /// когда пользователь щёлкает мышью. Поэтому всё, что происходит наверху
+    /// или в воздухе, требует свежей геометрии: иначе питомец успевает
+    /// постоять на полке, которой уже нет.
     private var environmentUrgency: ScreenEnvironment.Urgency {
-        switch currentBehavior {
-        // Лазание и подвес идут без опоры под лапами, но грань окна меняется
-        // куда медленнее, чем питомец лезет, — максимальная частота тут лишняя.
-        case .climb, .hang:
-            return .normal
-        case .drag:
-            return .high
-        default:
-            break
-        }
-        // Падение — единственный случай, где опора нужна с точностью до кадра.
-        if support == nil { return .high }
-        if support?.kind == .windowTop { return .normal }
+        if isDragged { return .high }
+        if support == nil || support?.kind == .windowTop { return .high }
         return Pet.ambient.contains(currentBehavior) && abs(velocity.dx) < 1 ? .low : .normal
     }
 

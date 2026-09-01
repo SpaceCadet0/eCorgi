@@ -102,68 +102,77 @@ final class WindowScanTests: XCTestCase {
         XCTAssertTrue(env().visibleLedges(atY: screen.minY - 20, from: 100, to: 900, areas: [screen]).isEmpty)
     }
 
-    // MARK: - Грани
+    // MARK: - Выбор переднего окна
 
-    /// Прямоугольник окна и его видимая верхняя грань.
-    private func tops(of rect: CGRect) -> [Ledge] {
-        [Ledge(y: rect.maxY, minX: rect.minX, maxX: rect.maxX, kind: .windowTop)]
+    private func scanned(_ rect: CGRect, pid: Int32, backdrop: Bool = false) -> ScreenEnvironment.ScannedWindow {
+        ScreenEnvironment.ScannedWindow(rect: rect, owner: "pid\(pid)", ownerPID: pid, isBackdrop: backdrop)
     }
 
-    func testWallReachesTheWindowTop() {
+    func testFrontWindowIsTheActiveApplicationsOne() {
+        let windows = [scanned(CGRect(x: 0, y: 0, width: 100, height: 100), pid: 1),
+                       scanned(CGRect(x: 0, y: 0, width: 200, height: 200), pid: 2)]
+        let front = ScreenEnvironment.frontWindow(among: windows, frontmostPID: 2)
+        XCTAssertEqual(front?.ownerPID, 2, "Берём окно активного приложения, а не самое переднее в списке")
+    }
+
+    func testFrontWindowFallsBackToTheTopmostWhenActiveAppHasNoWindows() {
+        // Finder без открытых папок, приложение только со строкой меню —
+        // иначе мир питомца мигал бы при каждом переключении на такое.
+        let windows = [scanned(CGRect(x: 0, y: 0, width: 100, height: 100), pid: 1),
+                       scanned(CGRect(x: 0, y: 0, width: 200, height: 200), pid: 2)]
+        XCTAssertEqual(ScreenEnvironment.frontWindow(among: windows, frontmostPID: 77)?.ownerPID, 1)
+    }
+
+    func testNoWindowsMeansNoFrontWindow() {
+        XCTAssertNil(ScreenEnvironment.frontWindow(among: [], frontmostPID: 1))
+    }
+
+    // MARK: - Геометрия переднего окна
+
+    func testFrontWindowGivesOneLedgeAndTwoWalls() {
         let rect = CGRect(x: 300, y: 200, width: 500, height: 500)
-        let walls = env().climbableWalls(of: rect, inFront: [], leadingTo: tops(of: rect), visibleAreas: [screen])
-        XCTAssertEqual(walls.count, 2)
-        XCTAssertTrue(walls.allSatisfy { $0.maxY == rect.maxY })
+        let result = env().geometry(from: scanned(rect, pid: 1), visibleAreas: [screen])
+
+        XCTAssertEqual(result.ledges.count, 1)
+        XCTAssertEqual(result.ledges[0].y, rect.maxY)
+        XCTAssertEqual(result.walls.count, 2)
+        XCTAssertTrue(result.walls.allSatisfy { $0.maxY == rect.maxY }, "Грань доходит до верха своего окна")
     }
 
-    func testSplitEdgeKeepsOnlyThePieceThatReachesTheTop() {
-        // Чужое окно перекрывает середину левой грани и рвёт её надвое.
-        // Нижний кусок кончается нижней кромкой чужого окна — лезть туда
-        // некуда, и раньше именно он уводил питомца в пустоту.
-        let rect = CGRect(x: 300, y: 100, width: 500, height: 600)
-        let occluder = CGRect(x: 200, y: 300, width: 400, height: 200)   // накрывает x=300 по y 300…500
-
-        let walls = env().climbableWalls(of: rect, inFront: [occluder],
-                                         leadingTo: tops(of: rect), visibleAreas: [screen])
-        let left = walls.filter { $0.side == .left }
-        XCTAssertEqual(left.count, 1, "Должен остаться ровно один кусок — верхний")
-        XCTAssertEqual(left[0].minY, 500, "Он начинается там, где кончается чужое окно")
-        XCTAssertEqual(left[0].maxY, rect.maxY, "И доходит до верха своего окна")
+    func testBackdropWindowGivesNothing() {
+        let rect = CGRect(x: screen.minX, y: screen.minY, width: screen.width, height: screen.height)
+        let result = env().geometry(from: scanned(rect, pid: 1, backdrop: true), visibleAreas: [screen])
+        XCTAssertTrue(result.ledges.isEmpty)
+        XCTAssertTrue(result.walls.isEmpty, "Развёрнутое во весь экран окно — фон, а не мебель")
     }
 
-    func testEdgeCoveredAtTheTopGivesNoWall() {
-        let rect = CGRect(x: 300, y: 100, width: 500, height: 600)
-        // Чужое окно накрывает верхнюю часть левой грани.
-        let occluder = CGRect(x: 200, y: 500, width: 400, height: 400)
+    func testWindowUnderTheMenuBarGivesNoLedgeAndNoWalls() {
+        let rect = CGRect(x: 300, y: 200, width: 500, height: screen.maxY - 200 + 30)
+        let result = env().geometry(from: scanned(rect, pid: 1), visibleAreas: [screen])
+        XCTAssertTrue(result.ledges.isEmpty, "Кромка ушла под строку меню — видимой опоры нет")
+        XCTAssertTrue(result.walls.isEmpty, "А без верхней полки и лезть некуда")
+    }
 
-        let left = env().climbableWalls(of: rect, inFront: [occluder],
-                                        leadingTo: tops(of: rect), visibleAreas: [screen])
-            .filter { $0.side == .left }
-        XCTAssertTrue(left.isEmpty, "Верх грани не виден — подниматься по ней бессмысленно")
+    func testWallFlushWithTheScreenSideIsRejected() {
+        // Окно прижато к левому краю экрана: видимой кромки там нет.
+        let rect = CGRect(x: screen.minX, y: 200, width: 500, height: 500)
+        let result = env().geometry(from: scanned(rect, pid: 1), visibleAreas: [screen])
+        XCTAssertEqual(result.walls.map(\.side), [.right])
+    }
+
+    func testShortWindowGivesNoWalls() {
+        let rect = CGRect(x: 300, y: 200, width: 500, height: 65)
+        let result = env().geometry(from: scanned(rect, pid: 1), visibleAreas: [screen])
+        XCTAssertEqual(result.ledges.count, 1, "Стоять на нём можно")
+        XCTAssertTrue(result.walls.isEmpty, "А лезть по такому огрызку не стоит")
     }
 
     func testWallNeedsAVisibleTopLedgeBesideIt() {
         let rect = CGRect(x: 300, y: 200, width: 500, height: 500)
         // Верхняя грань видна только справа — слева хвататься не за что.
         let partialTop = [Ledge(y: rect.maxY, minX: 600, maxX: rect.maxX, kind: .windowTop)]
-
-        let walls = env().climbableWalls(of: rect, inFront: [], leadingTo: partialTop, visibleAreas: [screen])
+        let walls = env().climbableWalls(of: rect, leadingTo: partialTop, visibleAreas: [screen])
         XCTAssertEqual(walls.map(\.side), [.right])
-    }
-
-    func testWallFlushWithTheScreenSideIsRejected() {
-        // Окно прижато к левому краю экрана: видимой кромки там нет.
-        let rect = CGRect(x: screen.minX, y: 200, width: 500, height: 500)
-        let walls = env().climbableWalls(of: rect, inFront: [], leadingTo: tops(of: rect), visibleAreas: [screen])
-        XCTAssertEqual(walls.map(\.side), [.right])
-    }
-
-    func testWallShorterThanTheMinimumIsRejected() {
-        let rect = CGRect(x: 300, y: 200, width: 500, height: 500)
-        let occluder = CGRect(x: 200, y: 200, width: 400, height: 480)   // оставляет сверху щель в 20
-        let walls = env().climbableWalls(of: rect, inFront: [occluder],
-                                         leadingTo: tops(of: rect), visibleAreas: [screen])
-        XCTAssertTrue(walls.filter { $0.side == .left }.isEmpty, "Щель — не лестница")
     }
 
     func testNoWindowsMeansNoWindowLedges() {
