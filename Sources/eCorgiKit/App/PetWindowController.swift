@@ -5,7 +5,7 @@ import AppKit
 /// при смене кадров разного размера, а система не переклеивает окно каждый тик.
 public final class PetWindowController {
 
-    private let panel: NSPanel
+    private let panel: PetPanel
     private let view: PetView
     private let pet: Pet
     private let settings: SettingsStore
@@ -22,10 +22,10 @@ public final class PetWindowController {
 
         let size = PetWindowController.windowSize(for: atlas, scale: CGFloat(settings.scale))
 
-        panel = NSPanel(contentRect: CGRect(origin: .zero, size: size),
-                        styleMask: [.borderless, .nonactivatingPanel],
-                        backing: .buffered,
-                        defer: false)
+        panel = PetPanel(contentRect: CGRect(origin: .zero, size: size),
+                         styleMask: [.borderless, .nonactivatingPanel],
+                         backing: .buffered,
+                         defer: false)
         panel.isOpaque = false
         panel.backgroundColor = .clear
         panel.hasShadow = false

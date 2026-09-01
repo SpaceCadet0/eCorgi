@@ -66,8 +66,15 @@ final class WalkState: BehaviorState {
         let step = pet.tuning.walkSpeed * pet.speedFactor * CGFloat(dt) * pet.facing
         let nextX = pet.position.x + step
 
-        if nextX < ledge.minX + edgeMargin || nextX > ledge.maxX - edgeMargin {
-            return handleEdge(pet, ledge: ledge, nextX: nextX)
+        // Край засчитывается, только если питомец в него идёт. Без этой
+        // проверки он застревал в углу экрана: оказавшись ближе edgeMargin к
+        // концу полки, он на каждом тике «упирался в край» независимо от
+        // направления и разворачивался туда-обратно, не сходя с места.
+        if pet.facing < 0, nextX < ledge.minX + edgeMargin {
+            return handleEdge(pet, ledge: ledge, side: .left)
+        }
+        if pet.facing > 0, nextX > ledge.maxX - edgeMargin {
+            return handleEdge(pet, ledge: ledge, side: .right)
         }
 
         pet.position.x = nextX
@@ -127,14 +134,12 @@ final class WalkState: BehaviorState {
     }
 
     /// Дошли до конца полки.
-    private func handleEdge(_ pet: Pet, ledge: Ledge, nextX: CGFloat) -> BehaviorTransition {
+    private func handleEdge(_ pet: Pet, ledge: Ledge, side: HorizontalSide) -> BehaviorTransition {
         // С края экрана прыгать некуда — только разворот.
         guard ledge.kind == .windowTop else {
             turnAround(pet)
             return .stay
         }
-
-        let side: HorizontalSide = nextX < ledge.minX + edgeMargin ? .left : .right
 
         // Засиделся наверху — спускаемся не раздумывая.
         if pet.hasOverstayedOnWindow {

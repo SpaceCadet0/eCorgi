@@ -20,7 +20,9 @@ final class RunFromCursorState: BehaviorState {
         let step = pet.tuning.runSpeed * pet.speedFactor * CGFloat(dt) * pet.facing
         let nextX = pet.position.x + step
 
-        if nextX < ledge.minX + edgeMargin || nextX > ledge.maxX - edgeMargin {
+        // Как и при ходьбе, край засчитывается только по направлению бега.
+        if (pet.facing < 0 && nextX < ledge.minX + edgeMargin)
+            || (pet.facing > 0 && nextX > ledge.maxX - edgeMargin) {
             // Загнали в угол — дальше бежать некуда, разворачиваемся и успокаиваемся.
             pet.position.x = ledge.clampX(nextX)
             pet.facing *= -1
