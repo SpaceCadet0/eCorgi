@@ -32,7 +32,7 @@ final class RunFromCursorState: BehaviorState {
         pet.position.x = nextX
         pet.position.y = ledge.y
 
-        let bodyCentre = CGPoint(x: pet.position.x, y: pet.position.y + pet.spriteHeightHint / 2)
+        let bodyCentre = CGPoint(x: pet.position.x, y: pet.position.y + pet.bodyCentreOffset)
         return pet.cursor.distance(to: bodyCentre) > pet.tuning.cursorCalmRadius ? .done : .stay
     }
 }

@@ -195,7 +195,7 @@ public final class Pet {
         // Курсор проверяем раньше усталости: спугнуть питомца важнее, чем уложить.
         if settings.reactToCursor,
            Pet.startleable.contains(state),
-           cursor.distance(to: CGPoint(x: position.x, y: position.y + spriteHeightHint / 2)) < tuning.cursorFleeRadius {
+           cursor.distance(to: CGPoint(x: position.x, y: position.y + bodyCentreOffset)) < tuning.cursorFleeRadius {
             machine.force(.runFromCursor, pet: self)
             return
         }
@@ -231,10 +231,9 @@ public final class Pet {
         activeTime = 0
     }
 
-    /// Грубая оценка высоты питомца — нужна, чтобы мерить расстояние до курсора
-    /// от середины тела, а не от лап.
-    public var spriteHeightHint: CGFloat {
-        animator.currentFrame.size.height * CGFloat(settings.scale)
+    /// Середина тела над лапами — от неё меряется расстояние до курсора.
+    public var bodyCentreOffset: CGFloat {
+        animator.currentFrame.contentBounds.midY * CGFloat(settings.scale)
     }
 
     private func clampToWorld() {
@@ -255,10 +254,18 @@ public final class Pet {
 
     // MARK: - Размеры спрайта
 
-    /// Габариты берём по самому большому кадру атласа, а не по текущему:
-    /// иначе при смене кадра питомец, висящий на грани, дёргался бы вверх-вниз.
-    public var spriteWidth: CGFloat { atlas.maxFrameSize.width * CGFloat(settings.scale) }
-    public var spriteHeight: CGFloat { atlas.maxFrameSize.height * CGFloat(settings.scale) }
+    /// Габариты меряются по непрозрачному содержимому текущего кадра, а не по
+    /// холсту: после приведения пака к общему размеру над мелкими рисунками
+    /// остаётся много пустоты, и по холсту питомец «оказывался» вдвое выше,
+    /// чем он есть.
+    public var spriteWidth: CGFloat {
+        animator.currentFrame.contentBounds.width * CGFloat(settings.scale)
+    }
+
+    /// Высота макушки над лапами — по ней питомец подвешивается к грани.
+    public var spriteHeight: CGFloat {
+        animator.currentFrame.contentBounds.maxY * CGFloat(settings.scale)
+    }
 
     /// Насколько центр спрайта отстоит от грани, за которую питомец держится.
     public var wallHugOffset: CGFloat { spriteWidth * 0.22 }

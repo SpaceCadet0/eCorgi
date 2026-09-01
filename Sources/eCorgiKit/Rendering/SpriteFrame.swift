@@ -26,6 +26,18 @@ public final class SpriteFrame {
         self.init(image: cgImage, size: nsImage.size)
     }
 
+    /// Прямоугольник непрозрачных пикселей в точках, в системе кадра:
+    /// начало координат — левый нижний угол холста.
+    ///
+    /// Движку нужен именно персонаж, а не холст: после приведения кадров к
+    /// общему размеру над мелкими рисунками остаётся много пустоты, и мерить
+    /// питомца по холсту значит промахиваться на сотню пунктов.
+    public var contentBounds: CGRect {
+        if alphaMask == nil { alphaMask = AlphaMask(image: image) }
+        guard let mask = alphaMask else { return CGRect(origin: .zero, size: size) }
+        return mask.contentBounds(scaledTo: size)
+    }
+
     /// Непрозрачен ли пиксель в нормированных координатах (0…1, начало слева снизу).
     public func isOpaque(atUnit point: CGPoint) -> Bool {
         guard point.x >= 0, point.x <= 1, point.y >= 0, point.y <= 1 else { return false }
@@ -40,6 +52,8 @@ final class AlphaMask {
     private let width: Int
     private let height: Int
     private let data: [UInt8]
+    /// Границы непрозрачных пикселей в координатах маски.
+    private let opaque: (minX: Int, minY: Int, maxX: Int, maxY: Int)?
 
     init?(image: CGImage) {
         // Уменьшаем маску: для попадания мышью хватает грубого разрешения,
@@ -66,13 +80,35 @@ final class AlphaMask {
         width = w
         height = h
         data = buffer
+
+        var minX = w, minY = h, maxX = -1, maxY = -1
+        for y in 0..<h {
+            for x in 0..<w where buffer[y * w + x] > 38 {
+                minX = min(minX, x); maxX = max(maxX, x)
+                minY = min(minY, y); maxY = max(maxY, y)
+            }
+        }
+        opaque = maxX < 0 ? nil : (minX, minY, maxX, maxY)
+    }
+
+    /// Границы содержимого, пересчитанные в размер кадра.
+    /// Строки маски идут сверху вниз, а результат нужен в системе AppKit —
+    /// с началом в левом нижнем углу, поэтому вертикаль переворачивается.
+    func contentBounds(scaledTo size: CGSize) -> CGRect {
+        guard let opaque, width > 0, height > 0 else { return CGRect(origin: .zero, size: size) }
+        let sx = size.width / CGFloat(width), sy = size.height / CGFloat(height)
+        return CGRect(x: CGFloat(opaque.minX) * sx,
+                      y: CGFloat(height - 1 - opaque.maxY) * sy,
+                      width: CGFloat(opaque.maxX - opaque.minX + 1) * sx,
+                      height: CGFloat(opaque.maxY - opaque.minY + 1) * sy)
     }
 
     /// Начало координат в нормированной системе — слева снизу, как в AppKit.
     func isOpaque(atUnit point: CGPoint, threshold: UInt8 = 38) -> Bool {
         let x = min(width - 1, max(0, Int(point.x * CGFloat(width))))
-        // CGContext рисует снизу вверх, так что переворот не нужен.
-        let y = min(height - 1, max(0, Int(point.y * CGFloat(height))))
-        return data[y * width + x] > threshold
+        // Строка 0 буфера CGContext — это верх кадра, а point.y отсчитывается
+        // от низа: без переворота маска попадания оказывалась зеркальной.
+        let row = min(height - 1, max(0, Int((1 - point.y) * CGFloat(height))))
+        return data[row * width + x] > threshold
     }
 }
