@@ -1,0 +1,146 @@
+{
+  "tuning": {
+    "walkSpeed": 55,
+    "runSpeed": 175,
+    "cursorFleeRadius": 95,
+    "cursorCalmRadius": 260,
+    "dragFollowStiffness": 14,
+    "walkFPS": 12,
+    "runFPS": 18,
+    "idleFPS": 5,
+    "sleepAfterActivity": 120,
+
+    "climbSpeed": 110,
+    "wallReach": 10,
+    "wallGrabReach": 70,
+    "minClimbHeight": 70,
+    "climbChance": 0.35,
+    "seekWallChance": 0.15,
+    "wallSeekRange": 1000,
+    "windowStayLimit": 30,
+
+    "edgeHangChance": 0.2,
+    "edgeJumpDownChance": 0.25,
+    "hangMinDuration": 2.5,
+    "hangMaxDuration": 6.0,
+    "hangPullUpChance": 0.6,
+    "hangSwayAmplitude": 0.13,
+    "hangSwayPeriod": 1.8,
+
+    "hopSpeed": 320,
+    "jumpSpeed": 145,
+    "jumpLift": 200,
+    "jumpAirDrag": 0.15
+  },
+  "states": {
+    "idle": {
+      "minDuration": 1.5,
+      "maxDuration": 4.0,
+      "next": [
+        { "state": "walk",    "weight": 45 },
+        { "state": "sit",     "weight": 25 },
+        { "state": "scratch", "weight": 12 },
+        { "state": "settleDown", "weight": 18, "condition": "rested" },
+        { "state": "climb",    "weight": 8,  "condition": "nearWall" },
+        { "state": "hang",     "weight": 6,  "condition": "atLedgeEdge" },
+        { "state": "jumpDown", "weight": 10, "condition": "canJumpDown" },
+        { "state": "hop",      "weight": 12, "condition": "energetic" }
+      ]
+    },
+    "walk": {
+      "minDuration": 2.5,
+      "maxDuration": 7.0,
+      "next": [
+        { "state": "idle",    "weight": 45 },
+        { "state": "walk",    "weight": 20 },
+        { "state": "sit",     "weight": 20 },
+        { "state": "scratch", "weight": 15 },
+        { "state": "hop",     "weight": 10, "condition": "energetic" }
+      ]
+    },
+    "sit": {
+      "minDuration": 3.0,
+      "maxDuration": 8.0,
+      "next": [
+        { "state": "idle",  "weight": 50 },
+        { "state": "walk",  "weight": 20 },
+        { "state": "settleDown", "weight": 30, "condition": "rested" }
+      ]
+    },
+    "settleDown": {
+      "minDuration": 0.8,
+      "maxDuration": 1.5,
+      "next": [ { "state": "sleep", "weight": 1 } ]
+    },
+    "sleep": {
+      "minDuration": 12.0,
+      "maxDuration": 35.0,
+      "next": [ { "state": "wakeUp", "weight": 1 } ]
+    },
+    "wakeUp": {
+      "minDuration": 0.9,
+      "maxDuration": 1.8,
+      "next": [
+        { "state": "sit",  "weight": 40 },
+        { "state": "idle", "weight": 60 }
+      ]
+    },
+    "scratch": {
+      "minDuration": 1.5,
+      "maxDuration": 3.0,
+      "next": [
+        { "state": "idle", "weight": 60 },
+        { "state": "walk", "weight": 40 }
+      ]
+    },
+    "runFromCursor": {
+      "minDuration": 0.8,
+      "maxDuration": 2.5,
+      "next": [
+        { "state": "idle", "weight": 50 },
+        { "state": "walk", "weight": 50 }
+      ]
+    },
+    "land": {
+      "minDuration": 0.25,
+      "maxDuration": 0.45,
+      "next": [
+        { "state": "idle", "weight": 60 },
+        { "state": "walk", "weight": 40 }
+      ]
+    },
+    "climb": {
+      "minDuration": 999,
+      "maxDuration": 999,
+      "next": [ { "state": "land", "weight": 1 } ]
+    },
+    "hang": {
+      "minDuration": 999,
+      "maxDuration": 999,
+      "next": [
+        { "state": "land", "weight": 60 },
+        { "state": "fall", "weight": 40 }
+      ]
+    },
+    "hop": {
+      "minDuration": 999,
+      "maxDuration": 999,
+      "next": [ { "state": "land", "weight": 1 } ]
+    },
+    "jumpDown": {
+      "minDuration": 999,
+      "maxDuration": 999,
+      "next": [ { "state": "land", "weight": 1 } ]
+    },
+    "fall": {
+      "minDuration": 999,
+      "maxDuration": 999,
+      "next": [ { "state": "idle", "weight": 1 } ]
+    },
+    "drag": {
+      "minDuration": 999,
+      "maxDuration": 999,
+      "next": [ { "state": "fall", "weight": 1 } ]
+    }
+  }
+}

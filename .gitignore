@@ -1,0 +1,17 @@
+# Сборка
+.build/
+build/
+.swiftpm/
+*.xcuserstate
+xcuserdata/
+
+# macOS
+.DS_Store
+
+# Чужие ассеты: справочные кадры из Banana Kong и дистрибутив eSheep.
+# Держим локально — в репозиторий не кладём.
+Boar/
+Frog/
+Pufferfish/
+eSheep-v1.1.dmg
+*.zip
