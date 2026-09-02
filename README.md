@@ -120,8 +120,8 @@ ECORGI_DEBUG=2 .build/debug/eCorgi   # плюс выгрузка найденн�
 
 - `walk`, `run`, `jump`, `sleep`, `sit` — собственные кадры корги
   (исходники в `images/`, сборка анимации — `corgi.aep`);
-- `run` — 19 кадров, разобраны из спрайт-листа `images/ChatGPT Image Sep 2, 2026, 03_09_05 PM.png`;
-- `idle`, `sit`, `sit_down`, `stand_up` и `walk_00…03` — кадры из Banana Kong,
+- `run` — 19 кадров, `walk` — 21 кадр: разобраны из спрайт-листов в `images/`;
+- `idle`, `sit`, `sit_down` и `stand_up` — кадры из Banana Kong,
   стоят как заглушки до готовности своих. В открытую раздачу с ними уходить
   нельзя: перед этапом 8 из PLAN.md их нужно заменить.
 
@@ -132,7 +132,7 @@ ECORGI_DEBUG=2 .build/debug/eCorgi   # плюс выгрузка найденн�
 |---|---|---|
 | `idle` | 70 | лягушка Banana Kong |
 | `run` | 63–70 | корги, 19 кадров |
-| `walk` | 51–70 | смешано: 4 кадра кабана + 3 корги |
+| `walk` | 64–70 | корги, 21 кадр |
 | `jump` | 66–83 | корги, в прыжке вытягивается |
 | `sit_down`, `stand_up` | 65 | Banana Kong |
 | `sit` | 56 | Banana Kong |
