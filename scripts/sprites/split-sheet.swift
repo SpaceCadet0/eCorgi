@@ -8,8 +8,14 @@ import AppKit
 let sheetURL = URL(fileURLWithPath: CommandLine.arguments[1])
 let outDir = URL(fileURLWithPath: CommandLine.arguments[2])
 let prefix = CommandLine.arguments[3]
-let canvas = CGSize(width: Double(CommandLine.arguments[4])!, height: Double(CommandLine.arguments[5])!)
-let targetHeight = CGFloat(Double(CommandLine.arguments[6])!)
+// Холст и рост можно не задавать: `auto` и `native` означают «не менять
+// масштаб, а холст подобрать по содержимому».
+let canvasArg = (CommandLine.arguments[4], CommandLine.arguments[5])
+let heightArg = CommandLine.arguments[6]
+let nativeScale = heightArg == "native"
+let autoCanvas = canvasArg.0 == "auto"
+var canvas = autoCanvas ? .zero : CGSize(width: Double(canvasArg.0)!, height: Double(canvasArg.1)!)
+let targetHeight = nativeScale ? 0 : CGFloat(Double(heightArg)!)
 
 let image = NSImage(contentsOf: sheetURL)!.cgImage(forProposedRect: nil, context: nil, hints: nil)!
 let w = image.width, h = image.height
@@ -55,8 +61,18 @@ print("кадров найдено: \(frames.count)")
 // сохраняется покачивание: кадры, где лапы выше, останутся выше.
 let groundY = frames.map(\.element.maxY).max()!
 let tallest = groundY - frames.map(\.element.minY).min()! + 1
-let scale = targetHeight / CGFloat(tallest)
-print("самый высокий кадр над землёй: \(tallest) -> коэффициент \(String(format: "%.3f", scale))")
+let scale = nativeScale ? 1 : targetHeight / CGFloat(tallest)
+print(nativeScale
+      ? "масштаб не меняется, самый высокий кадр над землёй: \(tallest)"
+      : "самый высокий кадр над землёй: \(tallest) -> коэффициент \(String(format: "%.3f", scale))")
+
+if autoCanvas {
+    let widest = frames.map { $0.element.maxX - $0.element.minX + 1 }.max()!
+    let margin = 6
+    canvas = CGSize(width: (CGFloat(widest) * scale).rounded(.up) + CGFloat(margin * 2),
+                    height: (CGFloat(tallest) * scale).rounded(.up) + CGFloat(margin))
+    print("холст подобран по содержимому: \(Int(canvas.width))x\(Int(canvas.height))")
+}
 
 try? FileManager.default.createDirectory(at: outDir, withIntermediateDirectories: true)
 
