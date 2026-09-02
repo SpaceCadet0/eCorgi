@@ -22,6 +22,26 @@ swift scripts/sprites/split-sheet.swift sheet.png /tmp/out run 102 104 70
 Скрипт печатает число найденных кадров: если оно не совпало с ожидаемым,
 лист не годится (кадры слиплись или в них есть оторванные детали).
 
+## seat-frames.swift
+
+Сажает кадры на землю — убирает зазор между нижней точкой рисунка и нижней
+кромкой холста. К этой кромке движок ставит лапы, поэтому зазор выглядит
+как парение над полом.
+
+```bash
+# каждый кадр садится сам по себе (по умолчанию) — верно для шага:
+# опорная лапа не должна отрываться от земли
+swift scripts/sprites/seat-frames.swift Sources/eCorgiKit/Resources/Sprites walk --each
+
+# весь цикл опускается на общую величину, превышения между кадрами сохраняются
+swift scripts/sprites/seat-frames.swift Sources/eCorgiKit/Resources/Sprites run --cycle
+
+# посмотреть, что будет, ничего не меняя
+swift scripts/sprites/seat-frames.swift Sources/eCorgiKit/Resources/Sprites walk --each --dry-run
+```
+
+Сдвиг идёт целыми пикселями, без интерполяции — рисунок не мылится.
+
 ## contact-sheet.swift
 
 Собирает все кадры действия в один лист с номерами и линией земли —
