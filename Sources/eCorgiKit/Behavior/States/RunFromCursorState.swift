@@ -21,10 +21,11 @@ final class RunFromCursorState: BehaviorState {
         let nextX = pet.position.x + step
 
         // Как и при ходьбе, край засчитывается только по направлению бега.
-        if (pet.facing < 0 && nextX < ledge.minX + edgeMargin)
-            || (pet.facing > 0 && nextX > ledge.maxX - edgeMargin) {
+        let span = pet.walkableSpan(of: ledge)
+        if (pet.facing < 0 && nextX < span.minX + edgeMargin)
+            || (pet.facing > 0 && nextX > span.maxX - edgeMargin) {
             // Загнали в угол — дальше бежать некуда, разворачиваемся и успокаиваемся.
-            pet.position.x = ledge.clampX(nextX)
+            pet.position.x = min(max(nextX, span.minX), span.maxX)
             pet.facing *= -1
             return .done
         }

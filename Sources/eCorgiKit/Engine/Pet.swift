@@ -239,7 +239,11 @@ public final class Pet {
     private func clampToWorld() {
         let bounds = environment.worldBounds
         guard !bounds.isNull else { return }
-        position.x = position.x.clamped(to: bounds.minX...bounds.maxX)
+        // Ограничиваем по нарисованному персонажу, а не по точке положения:
+        // иначе половина спрайта уезжает за край экрана.
+        if let limits = horizontalLimits {
+            position.x = position.x.clamped(to: limits)
+        }
         // Провалившегося ниже всех экранов возвращаем на пол.
         if position.y < bounds.minY - 200 {
             position.y = bounds.minY
@@ -267,6 +271,42 @@ public final class Pet {
         animator.currentFrame.contentBounds.maxY * CGFloat(settings.scale)
     }
 
+    /// Насколько нарисованный персонаж выступает влево и вправо от точки
+    /// положения питомца.
+    ///
+    /// Считается по непрозрачным пикселям кадра, а не по холсту: холст шире
+    /// рисунка, и по нему питомец упирался бы в край экрана заметно раньше,
+    /// чем это видно. Точка положения лежит в середине холста, поэтому левое
+    /// смещение отрицательное, правое положительное.
+    public var contentSpan: (left: CGFloat, right: CGFloat) {
+        let frame = animator.currentFrame
+        let scale = CGFloat(settings.scale)
+        let centre = frame.size.width / 2
+        return ((frame.contentBounds.minX - centre) * scale,
+                (frame.contentBounds.maxX - centre) * scale)
+    }
+
+    /// Пределы для точки положения, при которых персонаж целиком остаётся
+    /// на экране. `nil`, если персонаж шире всей видимой области.
+    public var horizontalLimits: ClosedRange<CGFloat>? {
+        let bounds = environment.worldBounds
+        guard !bounds.isNull else { return nil }
+        let span = contentSpan
+        let lo = bounds.minX - span.left
+        let hi = bounds.maxX - span.right
+        return lo <= hi ? lo...hi : nil
+    }
+
+    /// Отрезок полки, по которому можно ходить: сама полка, суженная так,
+    /// чтобы персонаж не выходил за экран.
+    public func walkableSpan(of ledge: Ledge) -> (minX: CGFloat, maxX: CGFloat) {
+        guard let limits = horizontalLimits else { return (ledge.minX, ledge.maxX) }
+        let minX = max(ledge.minX, limits.lowerBound)
+        let maxX = min(ledge.maxX, limits.upperBound)
+        return minX <= maxX ? (minX, maxX) : (ledge.clampX((minX + maxX) / 2),
+                                              ledge.clampX((minX + maxX) / 2))
+    }
+
     /// Насколько центр спрайта отстоит от грани, за которую питомец держится.
     public var wallHugOffset: CGFloat { spriteWidth * 0.22 }
 
@@ -277,9 +317,8 @@ public final class Pet {
     /// в таком случае питомец лезет по внутренней стороне.
     public func bodyX(besideEdgeAt x: CGFloat, side: HorizontalSide) -> CGFloat {
         let outside = x + side.outward * wallHugOffset
-        let bounds = environment.worldBounds
-        guard !bounds.isNull else { return outside }
-        guard outside < bounds.minX || outside > bounds.maxX else { return outside }
+        guard let limits = horizontalLimits else { return outside }
+        guard !limits.contains(outside) else { return outside }
         return x - side.outward * wallHugOffset
     }
     /// Насколько вглубь полки он переступает, забравшись наверх.

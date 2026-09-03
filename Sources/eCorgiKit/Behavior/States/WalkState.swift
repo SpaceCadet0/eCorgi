@@ -50,8 +50,9 @@ final class WalkState: BehaviorState {
     /// почти никогда не доводит до края — приходится вести целенаправленно.
     private func edgeToLeaveBy(_ pet: Pet) -> CGFloat? {
         guard pet.hasOverstayedOnWindow, let ledge = pet.support else { return nil }
-        return abs(pet.position.x - ledge.minX) < abs(pet.position.x - ledge.maxX)
-            ? ledge.minX : ledge.maxX
+        let span = pet.walkableSpan(of: ledge)
+        return abs(pet.position.x - span.minX) < abs(pet.position.x - span.maxX)
+            ? span.minX : span.maxX
     }
 
     func update(_ pet: Pet, dt: TimeInterval) -> BehaviorTransition {
@@ -70,10 +71,13 @@ final class WalkState: BehaviorState {
         // проверки он застревал в углу экрана: оказавшись ближе edgeMargin к
         // концу полки, он на каждом тике «упирался в край» независимо от
         // направления и разворачивался туда-обратно, не сходя с места.
-        if pet.facing < 0, nextX < ledge.minX + edgeMargin {
+        // Отрезок сужен так, чтобы персонаж не вышел за экран: иначе питомец
+        // упирался бы в ограничитель и перебирал лапами на месте.
+        let span = pet.walkableSpan(of: ledge)
+        if pet.facing < 0, nextX < span.minX + edgeMargin {
             return handleEdge(pet, ledge: ledge, side: .left)
         }
-        if pet.facing > 0, nextX > ledge.maxX - edgeMargin {
+        if pet.facing > 0, nextX > span.maxX - edgeMargin {
             return handleEdge(pet, ledge: ledge, side: .right)
         }
 

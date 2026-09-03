@@ -197,7 +197,7 @@ final class JumpTests: XCTestCase {
         var leftTheLedge = false
         for _ in 0..<300 {
             pet.update(1.0 / 30)
-            if pet.position.x >= fullWidth.maxX - 8 { reachedEdge = true }
+            if pet.position.x >= pet.walkableSpan(of: fullWidth).maxX - 8 { reachedEdge = true }
             if pet.currentBehavior == .jumpDown || pet.currentBehavior == .fall { leftTheLedge = true }
         }
 
