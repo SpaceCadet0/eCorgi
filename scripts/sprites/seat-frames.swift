@@ -46,6 +46,8 @@ guard !frames.isEmpty else { print("кадров не найдено"); exit(1) 
 let common = frames.map(\.gap).min() ?? 0
 print("режим: \(perFrame ? "каждый кадр сам по себе" : "весь цикл на \(common)")")
 
+if !dryRun, frames.contains(where: { (perFrame ? $0.gap : common) > 0 }) { backUpFrames(from: dir) }
+
 for f in frames {
     let drop = perFrame ? f.gap : common
     let name = f.url.deletingPathExtension().lastPathComponent
@@ -65,3 +67,27 @@ for f in frames {
     try! rep.representation(using: .png, properties: [:])!.write(to: f.url)
 }
 print(dryRun ? "(пробный прогон, файлы не тронуты)" : "готово")
+
+/// Резервная копия папки перед изменением кадров.
+///
+/// Каждая правка растрового кадра необратима: пересэмплирование теряет
+/// детали, и вернуть исходник неоткуда, если он ещё не в git. Копия кладётся
+/// вне `Resources/` — иначе она уехала бы внутрь собранного приложения.
+func backUpFrames(from dir: URL) {
+    let root = dir.deletingLastPathComponent().deletingLastPathComponent()
+        .deletingLastPathComponent().deletingLastPathComponent()
+    let stamp = ISO8601DateFormatter()
+    stamp.formatOptions = [.withYear, .withMonth, .withDay, .withTime, .withDashSeparatorInDate]
+    let name = stamp.string(from: Date()).replacingOccurrences(of: ":", with: "-")
+    let to = root.appendingPathComponent("sprite-backups").appendingPathComponent(name)
+    do {
+        try FileManager.default.createDirectory(at: to.deletingLastPathComponent(),
+                                                withIntermediateDirectories: true)
+        try FileManager.default.copyItem(at: dir, to: to)
+        print("резервная копия: \(to.path)")
+    } catch {
+        print("НЕ УДАЛОСЬ сделать резервную копию: \(error.localizedDescription)")
+        print("правка отменена")
+        exit(1)
+    }
+}
