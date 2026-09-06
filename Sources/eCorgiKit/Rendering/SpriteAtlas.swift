@@ -115,6 +115,16 @@ public final class SpriteAtlas {
         return images
     }
 
+    /// Откуда действие реально берёт кадры и сколько их.
+    /// Если пак неполон, это будет не само действие, а его подмена —
+    /// меню проверки показывает это прямо в пункте.
+    public func source(for action: SpriteAction) -> (action: SpriteAction, frames: Int) {
+        for candidate in SpriteAtlas.fallbackChain(for: action) {
+            if let found = frames[candidate], !found.isEmpty { return (candidate, found.count) }
+        }
+        return (action, frames(for: action).count)
+    }
+
     /// Есть ли для действия собственные кадры (без подмены).
     public func hasOwnFrames(for action: SpriteAction) -> Bool {
         frames[action]?.isEmpty == false

@@ -27,10 +27,10 @@
     "hangSwayAmplitude": 0.13,
     "hangSwayPeriod": 1.8,
 
-    "hopSpeed": 320,
+    "hopSpeed": 140,
     "jumpSpeed": 145,
-    "jumpLift": 200,
-    "jumpAirDrag": 0.15
+    "jumpLift": 400,
+    "jumpAirDrag": 0.55
   },
   "states": {
     "idle": {
@@ -102,8 +102,8 @@
       ]
     },
     "land": {
-      "minDuration": 0.25,
-      "maxDuration": 0.45,
+      "minDuration": 1.25,
+      "maxDuration": 1.45,
       "next": [
         { "state": "idle", "weight": 60 },
         { "state": "walk", "weight": 40 }

@@ -4,6 +4,8 @@ import Foundation
 /// Заканчивается, когда мышь отошла достаточно далеко или упёрся в край полки.
 final class RunFromCursorState: BehaviorState {
     let id: BehaviorID = .runFromCursor
+    let spriteAction: SpriteAction = .run
+    let previewFPS: Double = 18
 
     private let edgeMargin: CGFloat = 4
 
@@ -15,7 +17,7 @@ final class RunFromCursorState: BehaviorState {
     func update(_ pet: Pet, dt: TimeInterval) -> BehaviorTransition {
         guard let ledge = pet.walkableLedge() else { return .switchTo(.fall) }
 
-        pet.animator.play(.run, fps: pet.tuning.runFPS)
+        pet.animator.play(spriteAction, fps: pet.tuning.runFPS)
 
         let step = pet.tuning.runSpeed * pet.speedFactor * CGFloat(dt) * pet.facing
         let nextX = pet.position.x + step

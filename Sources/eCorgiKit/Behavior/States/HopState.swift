@@ -5,6 +5,8 @@ import Foundation
 /// поэтому питомец приземляется ровно туда, откуда оттолкнулся.
 final class HopState: BehaviorState {
     let id: BehaviorID = .hop
+    let spriteAction: SpriteAction = .jump
+    let previewFPS: Double = 12
     /// Кончается приземлением, а не таймером автомата.
     let isInterruptibleByTimer = false
 
@@ -12,7 +14,7 @@ final class HopState: BehaviorState {
         // Оттолкнуться можно только от опоры.
         guard pet.support != nil else { return }
         pet.velocity = CGVector(dx: 0, dy: pet.tuning.hopSpeed * pet.speedFactor)
-        pet.animator.play(.jump, fps: 12, loops: false)
+        pet.animator.play(spriteAction, fps: 12, loops: false)
         pet.animator.restart()
     }
 
@@ -20,7 +22,7 @@ final class HopState: BehaviorState {
         // Оттолкнуться не удалось (опоры не было) — просто возвращаемся к жизни.
         guard pet.velocity.dy != 0 || pet.support == nil else { return .switchTo(.idle) }
 
-        pet.animator.play(.jump, fps: 12, loops: false)
+        pet.animator.play(spriteAction, fps: 12, loops: false)
 
         let step = PhysicsHelper.advanceThroughAir(position: pet.position,
                                                    velocity: pet.velocity,

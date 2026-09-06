@@ -4,6 +4,8 @@ import Foundation
 /// Заканчивает сам: либо подтягивается обратно, либо разжимает лапы.
 final class HangState: BehaviorState {
     let id: BehaviorID = .hang
+    let spriteAction: SpriteAction = .hang
+    let previewFPS: Double = 6
     /// Длительность держим внутри состояния — от неё зависит, чем оно кончится.
     let isInterruptibleByTimer = false
 
@@ -15,14 +17,14 @@ final class HangState: BehaviorState {
         pet.velocity = .zero
         elapsed = 0
         plannedDuration = pet.random.value(in: pet.tuning.hangMinDuration...pet.tuning.hangMaxDuration)
-        pet.animator.play(.hang, fps: 6)
+        pet.animator.play(spriteAction, fps: 6)
     }
 
     func update(_ pet: Pet, dt: TimeInterval) -> BehaviorTransition {
         // Окно закрылось или уехало — держаться больше не за что.
         guard let anchor = pet.refreshedHangAnchor() else { return .switchTo(.fall) }
 
-        pet.animator.play(.hang, fps: 6)
+        pet.animator.play(spriteAction, fps: 6)
         elapsed += dt
 
         // Тело висит под точкой захвата, мордой к окну.

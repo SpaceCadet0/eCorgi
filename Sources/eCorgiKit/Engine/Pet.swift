@@ -26,6 +26,14 @@ public final class Pet {
 
     // MARK: - Взаимодействие
 
+    /// Проверка анимаций из меню «Тест»: питомец стоит на месте и крутит
+    /// анимацию выбранного поведения.
+    ///
+    /// Автомат и режиссёр при этом не работают. Иначе половину состояний
+    /// посмотреть не удалось бы: лазание и подвес сразу отменяют себя, не
+    /// найдя подходящего окна, а падение заканчивается приземлением.
+    public var previewBehavior: BehaviorID?
+
     public var isDragged: Bool = false
     /// Куда тянет курсор во время перетаскивания (точка под лапами).
     public var dragTarget: CGPoint = .zero
@@ -89,6 +97,12 @@ public final class Pet {
         self.machine.current.enter(self)
     }
 
+    /// Чем каждое поведение себя показывает. Собирается из самих состояний,
+    /// поэтому не может разойтись с тем, что видно на экране.
+    public static let animations: [BehaviorID: (action: SpriteAction, fps: Double)] = {
+        Dictionary(uniqueKeysWithValues: makeStates().map { ($0.key, ($0.value.spriteAction, $0.value.previewFPS)) })
+    }()
+
     static func makeStates() -> [BehaviorID: BehaviorState] {
         let all: [BehaviorState] = [
             IdleState(), WalkState(), SitState(), ScratchState(),
@@ -108,6 +122,16 @@ public final class Pet {
     // MARK: - Тик
 
     public func update(_ dt: TimeInterval) {
+        if let previewBehavior, let animation = Pet.animations[previewBehavior] {
+            velocity = .zero
+            // Мышью питомца по-прежнему можно переставить: удобно посмотреть
+            // анимацию у края экрана или поверх окна.
+            if isDragged { position = dragTarget }
+            animator.play(animation.action, fps: animation.fps, loops: true)
+            animator.update(dt * settings.speedMultiplier)
+            return
+        }
+
         environment.windowAwareness = settings.windowAwareness
         environment.update(dt, urgency: environmentUrgency)
         cursor.update(dt)

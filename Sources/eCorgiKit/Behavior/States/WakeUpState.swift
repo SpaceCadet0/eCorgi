@@ -9,15 +9,17 @@ import Foundation
 /// Кадров у этого действия своих нет — берутся кадры `stand_up`.
 final class WakeUpState: BehaviorState {
     let id: BehaviorID = .wakeUp
+    let spriteAction: SpriteAction = .standUp
+    let previewFPS: Double = 8
 
     func enter(_ pet: Pet) {
         pet.velocity = .zero
-        pet.animator.play(.standUp, fps: 8, loops: false)
+        pet.animator.play(spriteAction, fps: 8, loops: false)
         pet.animator.restart()
     }
 
     func update(_ pet: Pet, dt: TimeInterval) -> BehaviorTransition {
-        pet.animator.play(.standUp, fps: 8, loops: false)
+        pet.animator.play(spriteAction, fps: 8, loops: false)
         return .stay
     }
 }

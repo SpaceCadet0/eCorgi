@@ -37,6 +37,16 @@ public protocol BehaviorState: AnyObject {
     /// `false` у Drag/Fall — они заканчиваются только по событию.
     var isInterruptibleByTimer: Bool { get }
 
+    /// Действие спрайта, которым состояние себя показывает.
+    /// Объявляется здесь, а не литералом внутри `update`, чтобы о нём могли
+    /// узнать снаружи — например, меню проверки анимаций.
+    var spriteAction: SpriteAction { get }
+
+    /// Темп для проверки анимации в отрыве от поведения.
+    /// У состояний, чей темп берётся из `tuning`, здесь стоит значение
+    /// по умолчанию — для просмотра этого достаточно.
+    var previewFPS: Double { get }
+
     func enter(_ pet: Pet)
     func update(_ pet: Pet, dt: TimeInterval) -> BehaviorTransition
     func exit(_ pet: Pet)

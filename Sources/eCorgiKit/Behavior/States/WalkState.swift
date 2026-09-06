@@ -12,6 +12,8 @@ import Foundation
 /// на полпути и до граней не добирался бы вовсе.
 final class WalkState: BehaviorState {
     let id: BehaviorID = .walk
+    let spriteAction: SpriteAction = .walk
+    let previewFPS: Double = 12
 
     /// Отступ от края полки, на котором считаем, что дошли.
     private let edgeMargin: CGFloat = 6
@@ -58,7 +60,7 @@ final class WalkState: BehaviorState {
     func update(_ pet: Pet, dt: TimeInterval) -> BehaviorTransition {
         guard let ledge = pet.walkableLedge() else { return .switchTo(.fall) }
 
-        pet.animator.play(.walk, fps: pet.tuning.walkFPS)
+        pet.animator.play(spriteAction, fps: pet.tuning.walkFPS)
         timeSinceClimbAttempt += dt
         trackGoal(pet, dt: dt)
 

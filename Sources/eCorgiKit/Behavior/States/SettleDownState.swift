@@ -10,15 +10,17 @@ import Foundation
 /// смыслу ровно про это (см. раздел 3 в PLAN.md).
 final class SettleDownState: BehaviorState {
     let id: BehaviorID = .settleDown
+    let spriteAction: SpriteAction = .sitDown
+    let previewFPS: Double = 8
 
     func enter(_ pet: Pet) {
         pet.velocity = .zero
-        pet.animator.play(.sitDown, fps: 8, loops: false)
+        pet.animator.play(spriteAction, fps: 8, loops: false)
         pet.animator.restart()
     }
 
     func update(_ pet: Pet, dt: TimeInterval) -> BehaviorTransition {
-        pet.animator.play(.sitDown, fps: 8, loops: false)
+        pet.animator.play(spriteAction, fps: 8, loops: false)
         return .stay
     }
 }

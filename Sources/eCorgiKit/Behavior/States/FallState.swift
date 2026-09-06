@@ -4,6 +4,8 @@ import Foundation
 /// сохраняется — так падение после шага с окна выглядит как прыжок.
 final class FallState: BehaviorState {
     let id: BehaviorID = .fall
+    let spriteAction: SpriteAction = .fall
+    let previewFPS: Double = 10
     /// Падение заканчивается только приземлением, а не таймером автомата.
     let isInterruptibleByTimer = false
 
@@ -11,12 +13,12 @@ final class FallState: BehaviorState {
     private let airDrag: CGFloat = 0.4
 
     func enter(_ pet: Pet) {
-        pet.animator.play(.fall, fps: 10, loops: false)
+        pet.animator.play(spriteAction, fps: 10, loops: false)
         if pet.velocity.dy > 0 { pet.velocity.dy = 0 }
     }
 
     func update(_ pet: Pet, dt: TimeInterval) -> BehaviorTransition {
-        pet.animator.play(.fall, fps: 10, loops: false)
+        pet.animator.play(spriteAction, fps: 10, loops: false)
 
         let step = PhysicsHelper.advanceThroughAir(position: pet.position,
                                                    velocity: pet.velocity,

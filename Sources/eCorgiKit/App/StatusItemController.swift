@@ -37,6 +37,12 @@ final class StatusItemController {
 
         menu.addItem(.separator())
 
+        let test = NSMenuItem(title: "Тест", action: nil, keyEquivalent: "")
+        test.submenu = testMenu
+        menu.addItem(test)
+
+        menu.addItem(.separator())
+
         let prefs = NSMenuItem(title: "Настройки…", action: #selector(openPreferences), keyEquivalent: ",")
         prefs.target = self
         menu.addItem(prefs)
@@ -54,10 +60,86 @@ final class StatusItemController {
         return menu
     }
 
+    // MARK: - Проверка анимаций
+
+    /// Поведения в порядке, удобном для просмотра: сначала обычная жизнь,
+    /// потом оконная акробатика, потом всё, что связано с руками и падением.
+    static let testable: [(BehaviorID, String)] = [
+        (.idle, "Стоит"),
+        (.walk, "Идёт"),
+        (.runFromCursor, "Убегает"),
+        (.scratch, "Чешется"),
+        (.sit, "Сидит"),
+        (.settleDown, "Укладывается"),
+        (.sleep, "Спит"),
+        (.wakeUp, "Просыпается"),
+        (.climb, "Лезет по грани"),
+        (.hang, "Висит на грани"),
+        (.hop, "Подскакивает"),
+        (.jumpDown, "Спрыгивает"),
+        (.fall, "Падает"),
+        (.land, "Приземляется"),
+        (.drag, "В руках")
+    ]
+
+    /// Пункт «Обычная жизнь» и пункты поведений держим ссылками, а не ищем
+    /// по тегам: у пунктов меню тег по умолчанию нулевой, и поиск по нулю
+    /// находил бы не то поведение.
+    private var liveItem: NSMenuItem?
+    private var behaviourItems: [NSMenuItem] = []
+
+    private lazy var testMenu: NSMenu = {
+        let menu = NSMenu()
+
+        let live = NSMenuItem(title: "Обычная жизнь", action: #selector(stopTesting), keyEquivalent: "")
+        live.target = self
+        menu.addItem(live)
+        liveItem = live
+        menu.addItem(.separator())
+
+        for (index, entry) in StatusItemController.testable.enumerated() {
+            let item = NSMenuItem(title: entry.1, action: #selector(playBehavior(_:)), keyEquivalent: "")
+            item.target = self
+            item.tag = index
+            menu.addItem(item)
+            behaviourItems.append(item)
+        }
+        return menu
+    }()
+
+    /// Заголовки собираются перед показом: пак меняется на ходу, и полезно
+    /// видеть прямо в меню, своими ли кадрами показывается поведение.
+    private func refreshTestMenu() {
+        _ = testMenu
+        liveItem?.state = pet.previewBehavior == nil ? .on : .off
+
+        for (index, entry) in StatusItemController.testable.enumerated() {
+            guard index < behaviourItems.count else { break }
+            let item = behaviourItems[index]
+            let wanted = Pet.animations[entry.0]?.action ?? .idle
+            let source = pet.atlas.source(for: wanted)
+            let detail = source.action == wanted
+                ? "\(wanted.rawValue), \(source.frames)"
+                : "\(wanted.rawValue) → \(source.action.rawValue), \(source.frames)"
+            item.title = "\(entry.1) — \(detail)"
+            item.state = pet.previewBehavior == entry.0 ? .on : .off
+        }
+    }
+
+    @objc private func playBehavior(_ sender: NSMenuItem) {
+        guard StatusItemController.testable.indices.contains(sender.tag) else { return }
+        pet.previewBehavior = StatusItemController.testable[sender.tag].0
+    }
+
+    @objc private func stopTesting() {
+        pet.previewBehavior = nil
+    }
+
     /// Обновляем заголовок пункта сна прямо перед показом меню.
     private lazy var menuDelegate: MenuDelegate = MenuDelegate { [weak self] in
         guard let self else { return }
         sleepItem.title = pet.isAsleep ? "Разбудить" : "Уложить спать"
+        refreshTestMenu()
     }
 
     // MARK: - Действия

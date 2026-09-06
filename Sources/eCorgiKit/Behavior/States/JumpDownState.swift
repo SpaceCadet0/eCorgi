@@ -8,6 +8,8 @@ import Foundation
 /// приземлиться этажом ниже. Приземление ловится по любой полке на пути.
 final class JumpDownState: BehaviorState {
     let id: BehaviorID = .jumpDown
+    let spriteAction: SpriteAction = .jump
+    let previewFPS: Double = 12
     /// Кончается приземлением, а не таймером автомата.
     let isInterruptibleByTimer = false
 
@@ -25,7 +27,7 @@ final class JumpDownState: BehaviorState {
                                 dy: pet.tuning.jumpLift * pet.speedFactor)
         // Чуть за край, чтобы сразу оторваться от полки, а не зацепиться за неё.
         pet.position.x = anchor.x + outward * 2
-        pet.animator.play(.jump, fps: 12, loops: false)
+        pet.animator.play(spriteAction, fps: 12, loops: false)
         pet.animator.restart()
         launched = true
     }
@@ -34,7 +36,7 @@ final class JumpDownState: BehaviorState {
         guard launched else {
             return pet.support == nil ? .switchTo(.fall) : .switchTo(.idle)
         }
-        pet.animator.play(.jump, fps: 12, loops: false)
+        pet.animator.play(spriteAction, fps: 12, loops: false)
 
         let step = PhysicsHelper.advanceThroughAir(position: pet.position,
                                                    velocity: pet.velocity,
