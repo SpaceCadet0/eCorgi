@@ -27,7 +27,7 @@
     "hangSwayAmplitude": 0.13,
     "hangSwayPeriod": 1.8,
 
-    "hopSpeed": 140,
+    "hopSpeed": 440,
     "jumpSpeed": 145,
     "jumpLift": 400,
     "jumpAirDrag": 0.55
@@ -112,25 +112,25 @@
     "climb": {
       "minDuration": 999,
       "maxDuration": 999,
-      "next": [ { "state": "land", "weight": 1 } ]
+      "next": [ { "state": "idle", "weight": 1 } ]
     },
     "hang": {
       "minDuration": 999,
       "maxDuration": 999,
       "next": [
-        { "state": "land", "weight": 60 },
+        { "state": "idle", "weight": 60 },
         { "state": "fall", "weight": 40 }
       ]
     },
     "hop": {
       "minDuration": 999,
       "maxDuration": 999,
-      "next": [ { "state": "land", "weight": 1 } ]
+      "next": [ { "state": "idle", "weight": 1 } ]
     },
     "jumpDown": {
       "minDuration": 999,
       "maxDuration": 999,
-      "next": [ { "state": "land", "weight": 1 } ]
+      "next": [ { "state": "idle", "weight": 1 } ]
     },
     "fall": {
       "minDuration": 999,
