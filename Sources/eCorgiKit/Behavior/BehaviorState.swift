@@ -42,6 +42,10 @@ public protocol BehaviorState: AnyObject {
     /// узнать снаружи — например, меню проверки анимаций.
     var spriteAction: SpriteAction { get }
 
+    /// Сколько последних кадров крутить после первого прохода.
+    /// Ноль — обычный цикл; см. `SpriteAnimator.tail`.
+    var animationTail: Int { get }
+
     /// Темп для проверки анимации в отрыве от поведения.
     /// У состояний, чей темп берётся из `tuning`, здесь стоит значение
     /// по умолчанию — для просмотра этого достаточно.
@@ -54,5 +58,6 @@ public protocol BehaviorState: AnyObject {
 
 public extension BehaviorState {
     var isInterruptibleByTimer: Bool { true }
+    var animationTail: Int { 0 }
     func exit(_ pet: Pet) {}
 }

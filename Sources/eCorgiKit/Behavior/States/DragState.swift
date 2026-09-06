@@ -6,16 +6,19 @@ final class DragState: BehaviorState {
     let id: BehaviorID = .drag
     let spriteAction: SpriteAction = .drag
     let previewFPS: Double = 8
+    /// Первый проход показывает, как питомца подхватили, а дальше он просто
+    /// болтает лапами — за это отвечают два последних кадра.
+    let animationTail: Int = 2
     /// Выход отсюда — только по отпусканию кнопки мыши (см. Pet.applyDirectorOverrides).
     let isInterruptibleByTimer = false
 
     func enter(_ pet: Pet) {
-        pet.animator.play(spriteAction, fps: 8)
+        pet.animator.play(spriteAction, fps: 8, tail: animationTail)
         pet.velocity = .zero
     }
 
     func update(_ pet: Pet, dt: TimeInterval) -> BehaviorTransition {
-        pet.animator.play(spriteAction, fps: 8)
+        pet.animator.play(spriteAction, fps: 8, tail: animationTail)
 
         let target = pet.dragTarget
         let stiffness = min(pet.tuning.dragFollowStiffness * CGFloat(dt), 1)

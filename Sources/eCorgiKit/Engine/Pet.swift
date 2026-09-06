@@ -99,8 +99,10 @@ public final class Pet {
 
     /// Чем каждое поведение себя показывает. Собирается из самих состояний,
     /// поэтому не может разойтись с тем, что видно на экране.
-    public static let animations: [BehaviorID: (action: SpriteAction, fps: Double)] = {
-        Dictionary(uniqueKeysWithValues: makeStates().map { ($0.key, ($0.value.spriteAction, $0.value.previewFPS)) })
+    public static let animations: [BehaviorID: (action: SpriteAction, fps: Double, tail: Int)] = {
+        Dictionary(uniqueKeysWithValues: makeStates().map {
+            ($0.key, ($0.value.spriteAction, $0.value.previewFPS, $0.value.animationTail))
+        })
     }()
 
     static func makeStates() -> [BehaviorID: BehaviorState] {
@@ -127,7 +129,7 @@ public final class Pet {
             // Мышью питомца по-прежнему можно переставить: удобно посмотреть
             // анимацию у края экрана или поверх окна.
             if isDragged { position = dragTarget }
-            animator.play(animation.action, fps: animation.fps, loops: true)
+            animator.play(animation.action, fps: animation.fps, loops: true, tail: animation.tail)
             animator.update(dt * settings.speedMultiplier)
             return
         }
