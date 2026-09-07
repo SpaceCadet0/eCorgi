@@ -35,10 +35,11 @@ final class JumpTests: XCTestCase {
 
     // MARK: - Подскок на месте
 
-    func testHopRisesAndComesBackToTheSameSpot() {
+    func testHopCarriesThePetForwardByTheConfiguredDistance() {
         let pet = makePet(at: CGPoint(x: 300, y: 0))
         pet.update(0)
         let startX = pet.position.x
+        pet.facing = 1
         pet.force(.hop)
 
         var apex: CGFloat = 0
@@ -54,8 +55,43 @@ final class JumpTests: XCTestCase {
         let analytic = pow(pet.tuning.hopSpeed, 2) / (2 * PhysicsHelper.gravity)
         XCTAssertGreaterThan(apex, analytic * 0.4, "Подскок должен быть заметным")
         XCTAssertEqual(pet.position.y, 0, accuracy: 0.001, "И вернуться на ту же полку")
-        XCTAssertEqual(pet.position.x, startX, accuracy: 0.001, "Прыжок на месте не сносит вбок")
-        XCTAssertEqual(pet.currentBehavior, .land)
+
+        // Дальность задана в длинах спрайта; допуск — шаг тика.
+        let expected = pet.spriteWidth * pet.tuning.hopLengths
+        let step = pet.tuning.walkSpeed / 30
+        XCTAssertEqual(pet.position.x - startX, expected, accuracy: expected * 0.1 + step,
+                       "Подскок должен уносить вперёд на заданное число длин")
+    }
+
+    func testHopEndsInIdleRatherThanLanding() {
+        // Приземление после лёгкого подскока разыгрывать незачем — куда идти
+        // дальше, решает таблица переходов, а там у hop стоит idle.
+        let pet = makePet(at: CGPoint(x: 300, y: 0))
+        pet.update(0)
+        pet.force(.hop)
+        run(pet, whileIn: .hop)
+        XCTAssertNotEqual(pet.currentBehavior, .land, "Отдельное приземление здесь лишнее")
+        XCTAssertEqual(pet.currentBehavior, .idle)
+    }
+
+    func testHopFollowsTheDirectionThePetFaces() {
+        let left = makePet(at: CGPoint(x: 600, y: 0))
+        left.update(0)
+        left.facing = -1
+        left.force(.hop)
+        let start = left.position.x
+        run(left, whileIn: .hop)
+        XCTAssertLessThan(left.position.x, start, "Смотрит влево — прыгает влево")
+    }
+
+    func testHopStaysInPlaceWhenDistanceIsZero() {
+        let pet = makePet(at: CGPoint(x: 300, y: 0))
+        pet.tuning.hopLengths = 0
+        pet.update(0)
+        let startX = pet.position.x
+        pet.force(.hop)
+        run(pet, whileIn: .hop)
+        XCTAssertEqual(pet.position.x, startX, accuracy: 0.001)
     }
 
     func testHopHeightMatchesTheConfiguredImpulse() {

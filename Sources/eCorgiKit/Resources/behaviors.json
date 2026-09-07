@@ -27,6 +27,7 @@
     "hangSwayAmplitude": 0.13,
     "hangSwayPeriod": 1.8,
 
+    "hopLengths": 3,
     "hopSpeed": 440,
     "jumpSpeed": 145,
     "jumpLift": 400,

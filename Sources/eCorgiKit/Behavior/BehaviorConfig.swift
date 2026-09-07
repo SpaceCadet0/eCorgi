@@ -128,6 +128,10 @@ public struct BehaviorTuning: Codable, Sendable {
     /// интегрирование на 30 fps недобирает около пятой части: при 320
     /// фактический подскок выходит ~20 пунктов, а не расчётные 26.
     public var hopSpeed: CGFloat = 320
+    /// На сколько своих длин питомец перелетает в подскоке.
+    /// Ноль — подскок строго вверх, как было раньше.
+    public var hopLengths: CGFloat = 3
+
     /// Горизонтальный разгон при спрыгивании с края.
     public var jumpSpeed: CGFloat = 145
     /// Подброс вверх в начале прыжка — без него получается не прыжок, а шаг в пустоту.
@@ -149,7 +153,7 @@ public struct BehaviorTuning: Codable, Sendable {
         case climbSpeed, wallReach, wallGrabReach, minClimbHeight, climbChance
         case seekWallChance, wallSeekRange, windowStayLimit
         case edgeHangChance, edgeJumpDownChance
-        case hopSpeed, jumpSpeed, jumpLift, jumpAirDrag
+        case hopSpeed, hopLengths, jumpSpeed, jumpLift, jumpAirDrag
         case hangMinDuration, hangMaxDuration, hangPullUpChance
         case hangSwayAmplitude, hangSwayPeriod
     }
@@ -184,6 +188,7 @@ public struct BehaviorTuning: Codable, Sendable {
         edgeHangChance = number(.edgeHangChance, d.edgeHangChance)
         edgeJumpDownChance = number(.edgeJumpDownChance, d.edgeJumpDownChance)
         hopSpeed = number(.hopSpeed, d.hopSpeed)
+        hopLengths = number(.hopLengths, d.hopLengths)
         jumpSpeed = number(.jumpSpeed, d.jumpSpeed)
         jumpLift = number(.jumpLift, d.jumpLift)
         jumpAirDrag = number(.jumpAirDrag, d.jumpAirDrag)
