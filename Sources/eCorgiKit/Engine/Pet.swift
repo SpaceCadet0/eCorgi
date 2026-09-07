@@ -171,6 +171,9 @@ public final class Pet {
         case .sleep, .sit:                       return 10
         case .idle, .scratch, .settleDown, .wakeUp: return 15
         case .hang:                   return 20
+        // Прыжок и падение короткие, а кадров в них много: при 30 тиках в
+        // секунду часть кадров просто не успела бы попасть на экран.
+        case .hop, .jumpDown, .fall:  return 60
         default:                      return 30
         }
     }

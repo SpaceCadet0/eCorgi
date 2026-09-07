@@ -58,6 +58,21 @@ public final class SpriteAnimator {
         tail > 1 ? max(0, currentFrames.count - min(tail, currentFrames.count)) : 0
     }
 
+    /// Подобрать темп так, чтобы весь цикл уложился в заданное время.
+    ///
+    /// Нужно там, где длительность действия задана физикой, а не таблицей:
+    /// полёт в прыжке короче, чем анимация при обычном темпе, и без подгонки
+    /// половина кадров просто не успевает показаться.
+    ///
+    /// Возвращает требуемую частоту — состояние держит её у себя, потому что
+    /// `play` на каждом тике иначе вернул бы прежнее значение.
+    @discardableResult
+    public func fitCycle(into seconds: TimeInterval) -> Double {
+        guard seconds > 0, frameCount > 1 else { return fps }
+        fps = Double(frameCount) / seconds
+        return fps
+    }
+
     /// Принудительно начать анимацию заново (например, повторный лай).
     public func restart() {
         frameIndex = 0

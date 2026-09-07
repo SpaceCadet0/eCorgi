@@ -7,7 +7,7 @@
     "dragFollowStiffness": 14,
     "walkFPS": 12,
     "runFPS": 18,
-    "idleFPS": 5,
+    "idleFPS": 10,
     "sleepAfterActivity": 120,
 
     "climbSpeed": 110,
@@ -27,7 +27,7 @@
     "hangSwayAmplitude": 0.13,
     "hangSwayPeriod": 1.8,
 
-    "hopLengths": 3,
+    "hopLengths": 1,
     "hopSpeed": 440,
     "jumpSpeed": 145,
     "jumpLift": 400,

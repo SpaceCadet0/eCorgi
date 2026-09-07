@@ -302,3 +302,62 @@ final class JumpTests: XCTestCase {
         XCTAssertFalse(machine.isSatisfied(.energetic, pet: pet), "Набегавшись, прыгать он не рвётся")
     }
 }
+
+/// Прыжок короткий, а кадров в нём много: без подгонки темпа половина
+/// анимации не успевала показаться.
+final class JumpAnimationTests: XCTestCase {
+
+    private func makePet() -> Pet {
+        let ground = Ledge(y: 0, minX: 0, maxX: 1200, kind: .ground)
+        return Pet(atlas: SpriteAtlas(),
+                   environment: ScreenEnvironment(fixedLedges: [ground],
+                                                  worldBounds: CGRect(x: 0, y: 0, width: 1200, height: 900)),
+                   settings: .testStore(), random: .fixed([0.5]),
+                   position: CGPoint(x: 400, y: 0))
+    }
+
+    /// Кадры, показанные за время прыжка, при заданной частоте цикла.
+    private func framesShown(loopFPS: Double) -> (seen: Set<Int>, total: Int) {
+        let pet = makePet()
+        pet.update(0)
+        pet.force(.hop)
+        var seen = Set<Int>()
+        var ticks = 0
+        while pet.currentBehavior == .hop, ticks < 600 {
+            seen.insert(pet.animator.frameIndex)
+            pet.update(1 / loopFPS)
+            ticks += 1
+        }
+        return (seen, pet.animator.frameCount)
+    }
+
+    func testEveryJumpFrameIsShownDuringTheFlight() {
+        let result = framesShown(loopFPS: 60)
+        XCTAssertEqual(result.seen.count, result.total,
+                       "Показано \(result.seen.count) кадров из \(result.total)")
+    }
+
+    func testLoopRunsFasterWhileJumping() {
+        // Тиков за полёт должно быть больше, чем кадров, иначе показать их
+        // все нельзя ни при каком темпе анимации.
+        let pet = makePet()
+        pet.update(0)
+        pet.force(.hop)
+        pet.update(1.0 / 60)
+        XCTAssertGreaterThanOrEqual(pet.desiredFPS, 60, "На время прыжка цикл ускоряется")
+    }
+
+    func testFitCycleSpreadsFramesOverTheGivenTime() {
+        let animator = SpriteAnimator(atlas: SpriteAtlas(), action: .jump)
+        animator.play(.jump, fps: 12, loops: false)
+        let fitted = animator.fitCycle(into: 0.5)
+        XCTAssertEqual(fitted, Double(animator.frameCount) / 0.5, accuracy: 0.001)
+        XCTAssertEqual(animator.fps, fitted, accuracy: 0.001)
+    }
+
+    func testFitCycleIgnoresNonsenseDurations() {
+        let animator = SpriteAnimator(atlas: SpriteAtlas(), action: .jump)
+        animator.play(.jump, fps: 12, loops: false)
+        XCTAssertEqual(animator.fitCycle(into: 0), 12, accuracy: 0.001, "Нулевое время темп не меняет")
+    }
+}

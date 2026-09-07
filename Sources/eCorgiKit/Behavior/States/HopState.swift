@@ -14,6 +14,10 @@ final class HopState: BehaviorState {
     /// Кончается приземлением, а не таймером автомата.
     let isInterruptibleByTimer = false
 
+    /// Темп, при котором цикл укладывается ровно в полёт. Считается на
+    /// толчке и держится здесь: `play` на каждом тике иначе сбрасывал бы его.
+    private var flightFPS: Double = 12
+
     func enter(_ pet: Pet) {
         // Оттолкнуться можно только от опоры.
         guard pet.support != nil else { return }
@@ -24,15 +28,17 @@ final class HopState: BehaviorState {
         let distance = pet.spriteWidth * pet.tuning.hopLengths
         let forward = flight > 0 ? distance / flight * pet.facing : 0
         pet.velocity = CGVector(dx: forward, dy: up)
-        pet.animator.play(spriteAction, fps: 12, loops: false)
+        pet.animator.play(spriteAction, fps: previewFPS, loops: false)
         pet.animator.restart()
+        // Все кадры прыжка должны успеть показаться за время полёта.
+        flightFPS = pet.animator.fitCycle(into: flight / pet.settings.speedMultiplier)
     }
 
     func update(_ pet: Pet, dt: TimeInterval) -> BehaviorTransition {
         // Оттолкнуться не удалось (опоры не было) — просто возвращаемся к жизни.
         guard pet.velocity.dy != 0 || pet.support == nil else { return .switchTo(.idle) }
 
-        pet.animator.play(spriteAction, fps: 12, loops: false)
+        pet.animator.play(spriteAction, fps: flightFPS, loops: false)
 
         let step = PhysicsHelper.advanceThroughAir(position: pet.position,
                                                    velocity: pet.velocity,
