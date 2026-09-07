@@ -47,7 +47,9 @@ final class ClimbState: BehaviorState {
         }
         pet.position = CGPoint(x: top.clampX(landingX), y: top.y)
         pet.velocity = .zero
-        return .switchTo(.land)
+        // Приземления здесь нет: питомец не падал, а перебрался через край.
+        // Куда идти дальше, решает таблица переходов.
+        return .done
     }
 
     func exit(_ pet: Pet) {

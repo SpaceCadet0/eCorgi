@@ -175,7 +175,9 @@ final class ClimbHangTests: XCTestCase {
 
         run(pet, whileIn: .climb)
 
-        XCTAssertEqual(pet.currentBehavior, .land)
+        // Приземления после подъёма быть не должно: питомец не падал.
+        XCTAssertNotEqual(pet.currentBehavior, .land)
+        XCTAssertEqual(pet.currentBehavior, .idle)
         XCTAssertEqual(pet.position.y, Scene.windowTopY, accuracy: 0.001)
         XCTAssertGreaterThan(pet.position.x, Scene.windowMinX, "Наверху нужно переступить внутрь полки")
 
