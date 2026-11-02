@@ -5,7 +5,7 @@
     "cursorFleeRadius": 95,
     "cursorCalmRadius": 260,
     "dragFollowStiffness": 14,
-    "walkFPS": 12,
+    "walkFPS": 24,
     "runFPS": 18,
     "idleFPS": 10,
     "sleepAfterActivity": 120,
