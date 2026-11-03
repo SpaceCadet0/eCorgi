@@ -67,6 +67,17 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             let url = URL(fileURLWithPath: dir).appendingPathComponent("preferences.png")
             try? rep.representation(using: .png, properties: [:])?.write(to: url)
             NSLog("eCorgi: снимок настроек \(Int(view.bounds.width))x\(Int(view.bounds.height)) -> \(url.path)")
+
+            // Обратный путь: закрыли одно окно — режим остаётся обычным,
+            // закрыли последнее — приложение уходит в строку меню.
+            NSApp.windows.first { $0.isVisible && $0.styleMask.contains(.titled) && $0 !== prefs }?.close()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                NSLog("eCorgi: после закрытия «О программе»: \(NSApp.activationPolicy() == .regular ? "обычный" : "строка меню")")
+                prefs.close()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    NSLog("eCorgi: после закрытия настроек: \(NSApp.activationPolicy() == .regular ? "обычный" : "строка меню")")
+                }
+            }
         }
     }
 
