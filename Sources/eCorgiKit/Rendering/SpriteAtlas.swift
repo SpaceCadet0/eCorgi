@@ -18,6 +18,8 @@ public enum SpriteAction: String, CaseIterable, Sendable {
     case scratch
     case bark
     case jump
+    /// Подскок; без своих кадров подменяется прыжком.
+    case hop
 }
 
 /// Загрузка и кэш кадров. Пока спрайт-пак не готов, недостающие действия
@@ -148,6 +150,7 @@ public final class SpriteAtlas {
         case .scratch:  return [.scratch, .sit, .idle, .walk]
         case .bark:     return [.bark, .idle, .walk]
         case .jump:     return [.jump, .run, .walk, .idle]
+        case .hop:      return [.hop, .jump, .run, .walk, .idle]
         }
     }
 

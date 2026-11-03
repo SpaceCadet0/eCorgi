@@ -10,15 +10,28 @@ import CoreImage
 // тело вбок, когда вытягиваются лапы, а посадка каждого кадра на землю
 // съела бы покачивание. Земля — самая нижняя лапа за цикл.
 //
-//   swift place-cycle.swift <кадры> <пак> <действие> <масштаб> [--dry-run]
+//   swift place-cycle.swift <кадры> <пак> <действие> <масштаб> [--outline 3] [--sharpen 0.5] [--dry-run]
 //
 // Масштабирование — один проход Ланцошем, перенос на холст — целым сдвигом.
+//
+// При сильном уменьшении (у видео — восьмикратном) тонкий контур растворяется
+// в заливке: персонаж светлеет и теряет границы. `--outline r` утолщает тёмные
+// линии на полном разрешении до уменьшения (минимум по цвету в радиусе r
+// пикселей, альфа остаётся исходной), `--sharpen k` добавляет лёгкую резкость
+// после. Значения 3 и 0.5 подобраны на корги из видео: доля тёмных пикселей
+// контура 9.5% против 10.4% у idle; при r=5 глаз уже слипается с мордой.
 
 let src = URL(fileURLWithPath: CommandLine.arguments[1])
 let pack = URL(fileURLWithPath: CommandLine.arguments[2])
 let action = CommandLine.arguments[3]
 let scale = CGFloat(Double(CommandLine.arguments[4])!)
 let dryRun = CommandLine.arguments.contains("--dry-run")
+func option(_ name: String) -> Double? {
+    guard let i = CommandLine.arguments.firstIndex(of: name), i + 1 < CommandLine.arguments.count else { return nil }
+    return Double(CommandLine.arguments[i + 1])
+}
+let outline = option("--outline") ?? 0
+let sharpen = option("--sharpen") ?? 0
 
 func load(_ url: URL) -> CGImage { NSImage(contentsOf: url)!.cgImage(forProposedRect: nil, context: nil, hints: nil)! }
 
@@ -62,7 +75,21 @@ print("холст пака: \(canvas.w)x\(canvas.h), сдвиг x=\(x) y=\(y)")
 guard outW <= canvas.w, outH + y <= canvas.h else { print("не помещается на холст — правка отменена"); exit(1) }
 guard !dryRun else { print("(пробный прогон, файлы не тронуты)"); exit(0) }
 
-let ci = CIContext(options: [.workingColorSpace: CGColorSpace(name: CGColorSpace.sRGB)!])
+let srgb = CGColorSpace(name: CGColorSpace.sRGB)!
+let ci = CIContext(options: [.workingColorSpace: srgb, .outputColorSpace: srgb])
+
+/// Утолщение тёмных линий: минимум по цвету в радиусе r, альфа исходная.
+func thickenLines(_ image: CIImage, radius: Double) -> CIImage {
+    guard radius > 0 else { return image }
+    let min = CIFilter(name: "CIMorphologyMinimum")!
+    min.setValue(image, forKey: kCIInputImageKey)
+    min.setValue(radius, forKey: kCIInputRadiusKey)
+    let blend = CIFilter(name: "CIBlendWithAlphaMask")!
+    blend.setValue(min.outputImage!.cropped(to: image.extent), forKey: kCIInputImageKey)
+    blend.setValue(image, forKey: kCIInputBackgroundImageKey)
+    blend.setValue(image, forKey: kCIInputMaskImageKey)
+    return blend.outputImage!.cropped(to: image.extent)
+}
 // Старые кадры действия убираем целиком: иначе лишние с большими номерами
 // остались бы в цикле.
 for old in (try! FileManager.default.contentsOfDirectory(at: pack, includingPropertiesForKeys: nil))
@@ -72,10 +99,19 @@ for old in (try! FileManager.default.contentsOfDirectory(at: pack, includingProp
 for (i, f) in frames.enumerated() {
     let part = f.cropping(to: crop)!
     let filter = CIFilter(name: "CILanczosScaleTransform")!
-    filter.setValue(CIImage(cgImage: part), forKey: kCIInputImageKey)
+    filter.setValue(thickenLines(CIImage(cgImage: part), radius: outline), forKey: kCIInputImageKey)
     filter.setValue(Double(scale), forKey: kCIInputScaleKey)
     filter.setValue(1.0, forKey: kCIInputAspectRatioKey)
-    let small = ci.createCGImage(filter.outputImage!, from: CGRect(x: 0, y: 0, width: outW, height: outH))!
+    var reduced = filter.outputImage!
+    if sharpen > 0 {
+        let unsharp = CIFilter(name: "CIUnsharpMask")!
+        unsharp.setValue(reduced, forKey: kCIInputImageKey)
+        unsharp.setValue(0.8, forKey: kCIInputRadiusKey)
+        unsharp.setValue(sharpen, forKey: kCIInputIntensityKey)
+        reduced = unsharp.outputImage!.cropped(to: filter.outputImage!.extent)
+    }
+    let small = ci.createCGImage(reduced, from: CGRect(x: 0, y: 0, width: outW, height: outH),
+                                 format: .RGBA8, colorSpace: srgb)!
 
     let c = CGContext(data: nil, width: canvas.w, height: canvas.h, bitsPerComponent: 8, bytesPerRow: 0,
                       space: CGColorSpace(name: CGColorSpace.sRGB)!,

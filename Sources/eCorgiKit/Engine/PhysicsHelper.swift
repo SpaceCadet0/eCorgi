@@ -43,9 +43,10 @@ public enum PhysicsHelper {
                                          velocity: CGVector,
                                          dt: CGFloat,
                                          airDrag: CGFloat = 0,
+                                         gravity g: CGFloat = gravity,
                                          in ledges: [Ledge]) -> (position: CGPoint, velocity: CGVector, landing: Ledge?) {
         var newVelocity = velocity
-        newVelocity.dy = max(velocity.dy - gravity * dt, -maxFallSpeed)
+        newVelocity.dy = max(velocity.dy - g * dt, -maxFallSpeed)
         newVelocity.dx *= (1 - airDrag * dt)
 
         var newPosition = CGPoint(x: position.x + newVelocity.dx * dt,

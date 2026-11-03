@@ -123,11 +123,11 @@ public struct BehaviorTuning: Codable, Sendable {
     public var hangPullUpChance: Double = 0.6
     // MARK: Прыжки
 
-    /// Начальная скорость подскока на месте, пунктов/с.
-    /// Аналитическая высота — hopSpeed² / (2 · gravity), но пошаговое
-    /// интегрирование на 30 fps недобирает около пятой части: при 320
-    /// фактический подскок выходит ~20 пунктов, а не расчётные 26.
-    public var hopSpeed: CGFloat = 320
+    /// Высота подскока в пунктах — насколько лапы отрываются от земли.
+    public var hopHeight: CGFloat = 10
+    /// Темп анимации подскока. Он же задаёт время полёта: подскок длится
+    /// ровно один цикл кадров, поэтому анимация всегда успевает пройти целиком.
+    public var hopFPS: Double = 15
     /// На сколько своих длин питомец перелетает в подскоке.
     /// Ноль — подскок строго вверх, как было раньше.
     public var hopLengths: CGFloat = 3
@@ -153,7 +153,7 @@ public struct BehaviorTuning: Codable, Sendable {
         case climbSpeed, wallReach, wallGrabReach, minClimbHeight, climbChance
         case seekWallChance, wallSeekRange, windowStayLimit
         case edgeHangChance, edgeJumpDownChance
-        case hopSpeed, hopLengths, jumpSpeed, jumpLift, jumpAirDrag
+        case hopHeight, hopFPS, hopLengths, jumpSpeed, jumpLift, jumpAirDrag
         case hangMinDuration, hangMaxDuration, hangPullUpChance
         case hangSwayAmplitude, hangSwayPeriod
     }
@@ -187,7 +187,8 @@ public struct BehaviorTuning: Codable, Sendable {
         windowStayLimit = number(.windowStayLimit, d.windowStayLimit)
         edgeHangChance = number(.edgeHangChance, d.edgeHangChance)
         edgeJumpDownChance = number(.edgeJumpDownChance, d.edgeJumpDownChance)
-        hopSpeed = number(.hopSpeed, d.hopSpeed)
+        hopHeight = number(.hopHeight, d.hopHeight)
+        hopFPS = number(.hopFPS, d.hopFPS)
         hopLengths = number(.hopLengths, d.hopLengths)
         jumpSpeed = number(.jumpSpeed, d.jumpSpeed)
         jumpLift = number(.jumpLift, d.jumpLift)

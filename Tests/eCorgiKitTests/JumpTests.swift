@@ -50,10 +50,8 @@ final class JumpTests: XCTestCase {
             ticks += 1
         }
 
-        // Высота считается от настройки, а не пинится числом: hopSpeed —
-        // это ручка, её крутят.
-        let analytic = pow(pet.tuning.hopSpeed, 2) / (2 * PhysicsHelper.gravity)
-        XCTAssertGreaterThan(apex, analytic * 0.4, "Подскок должен быть заметным")
+        // Высота считается от настройки, а не пинится числом: это ручка.
+        XCTAssertGreaterThan(apex, pet.tuning.hopHeight * 0.8, "Подскок должен быть заметным")
         XCTAssertEqual(pet.position.y, 0, accuracy: 0.001, "И вернуться на ту же полку")
 
         // Дальность задана в длинах спрайта; допуск — шаг тика.
@@ -94,7 +92,7 @@ final class JumpTests: XCTestCase {
         XCTAssertEqual(pet.position.x, startX, accuracy: 0.001)
     }
 
-    func testHopHeightMatchesTheConfiguredImpulse() {
+    func testHopHeightMatchesTheConfiguredHeight() {
         let pet = makePet(at: CGPoint(x: 300, y: 0))
         pet.update(0)
         pet.force(.hop)
@@ -106,14 +104,9 @@ final class JumpTests: XCTestCase {
             apex = max(apex, pet.position.y)
             ticks += 1
         }
-        // Аналитическая высота — v² / (2g). Пошаговое интегрирование на 30 fps
-        // систематически недобирает до неё, причём тем сильнее, чем слабее
-        // импульс: у низкого подскока на весь полёт приходится всего пара
-        // тиков. Поэтому проверяем не точное совпадение, а что связь
-        // «импульс → высота» не сломана.
-        let analytic = pow(pet.tuning.hopSpeed, 2) / (2 * PhysicsHelper.gravity)
-        XCTAssertGreaterThan(apex, analytic * 0.4)
-        XCTAssertLessThanOrEqual(apex, analytic)
+        // Высота задаётся прямо в пунктах. Шаг тика даёт небольшую погрешность:
+        // вершина дуги может прийтись между тиками.
+        XCTAssertEqual(apex, pet.tuning.hopHeight, accuracy: pet.tuning.hopHeight * 0.1 + 0.5)
     }
 
     func testHopIsNotTurnedIntoAFallByTheDirector() {
@@ -121,7 +114,9 @@ final class JumpTests: XCTestCase {
         pet.update(0)
         pet.force(.hop)
 
-        for _ in 0..<3 { pet.update(1.0 / 30) }
+        // Середина полёта: к ней питомец гарантированно оторвался от земли.
+        let half = Int(Double(pet.atlas.frames(for: .hop).count) / pet.tuning.hopFPS * 30 / 2)
+        for _ in 0..<half { pet.update(1.0 / 30) }
         XCTAssertNil(pet.support, "В воздухе опоры нет")
         XCTAssertEqual(pet.currentBehavior, .hop, "…но это прыжок, а не падение")
     }
@@ -281,7 +276,8 @@ final class JumpTests: XCTestCase {
         // Конкретные числа здесь не пинятся: это ручки настройки, их крутят.
         // Проверяем, что они дочитались из JSON и осмысленны.
         let tuning = BehaviorConfig.load().tuning
-        XCTAssertGreaterThan(tuning.hopSpeed, 0)
+        XCTAssertGreaterThan(tuning.hopHeight, 0)
+        XCTAssertGreaterThan(tuning.hopFPS, 0)
         XCTAssertGreaterThan(tuning.jumpSpeed, 0)
         XCTAssertGreaterThan(tuning.jumpLift, 0)
         XCTAssertTrue((0...1).contains(tuning.edgeJumpDownChance))
@@ -359,5 +355,48 @@ final class JumpAnimationTests: XCTestCase {
         let animator = SpriteAnimator(atlas: SpriteAtlas(), action: .jump)
         animator.play(.jump, fps: 12, loops: false)
         XCTAssertEqual(animator.fitCycle(into: 0), 12, accuracy: 0.001, "Нулевое время темп не меняет")
+    }
+}
+
+/// Подскок задаётся высотой и темпом и длится ровно один цикл кадров.
+final class HopTimingTests: XCTestCase {
+
+    private func makePet() -> Pet {
+        let ground = Ledge(y: 0, minX: 0, maxX: 1200, kind: .ground)
+        return Pet(atlas: SpriteAtlas(),
+                   environment: ScreenEnvironment(fixedLedges: [ground],
+                                                  worldBounds: CGRect(x: 0, y: 0, width: 1200, height: 900)),
+                   settings: .testStore(), random: .fixed([0.5]),
+                   position: CGPoint(x: 400, y: 0))
+    }
+
+    func testHopLastsExactlyOneAnimationCycle() {
+        let pet = makePet()
+        pet.update(0)
+        pet.force(.hop)
+        var ticks = 0
+        while pet.currentBehavior == .hop, ticks < 1000 { pet.update(1.0 / 60); ticks += 1 }
+        let expected = Double(pet.atlas.frames(for: .hop).count) / pet.tuning.hopFPS
+        XCTAssertEqual(Double(ticks) / 60, expected, accuracy: 2.0 / 60,
+                       "Полёт длится один цикл: кадров / hopFPS")
+    }
+
+    func testLowerHopStillShowsEveryFrame() {
+        let pet = makePet()
+        pet.tuning.hopHeight = 6
+        pet.update(0)
+        pet.force(.hop)
+        var seen = Set<Int>(), ticks = 0
+        while pet.currentBehavior == .hop, ticks < 1000 {
+            seen.insert(pet.animator.frameIndex)
+            pet.update(1.0 / 60); ticks += 1
+        }
+        XCTAssertEqual(seen.count, pet.animator.frameCount,
+                       "Даже низкий подскок показывает весь цикл")
+    }
+
+    func testHopPlaysItsOwnFrames() {
+        XCTAssertEqual(Pet.animations[.hop]?.action, .hop)
+        XCTAssertTrue(SpriteAtlas().hasOwnFrames(for: .hop), "Кадры hop_* в паке должны подхватываться")
     }
 }

@@ -9,29 +9,35 @@ import Foundation
 /// какой бы ни выставили высоту.
 final class HopState: BehaviorState {
     let id: BehaviorID = .hop
-    let spriteAction: SpriteAction = .jump
+    let spriteAction: SpriteAction = .hop
     let previewFPS: Double = 12
     /// Кончается приземлением, а не таймером автомата.
     let isInterruptibleByTimer = false
 
-    /// Темп, при котором цикл укладывается ровно в полёт. Считается на
-    /// толчке и держится здесь: `play` на каждом тике иначе сбрасывал бы его.
-    private var flightFPS: Double = 12
+    /// Темп анимации и гравитация этого подскока. Считаются на толчке и
+    /// держатся здесь: `play` на каждом тике иначе сбрасывал бы темп.
+    private var flightFPS: Double = 15
+    private var hopGravity: CGFloat = PhysicsHelper.gravity
 
     func enter(_ pet: Pet) {
         // Оттолкнуться можно только от опоры.
         guard pet.support != nil else { return }
 
-        let up = pet.tuning.hopSpeed * pet.speedFactor
-        // Время полёта до возвращения на ту же высоту.
-        let flight = 2 * up / PhysicsHelper.gravity
-        let distance = pet.spriteWidth * pet.tuning.hopLengths
-        let forward = flight > 0 ? distance / flight * pet.facing : 0
-        pet.velocity = CGVector(dx: forward, dy: up)
-        pet.animator.play(spriteAction, fps: previewFPS, loops: false)
+        // Подскок длится ровно один цикл кадров: так анимация всегда успевает
+        // пройти целиком при любой высоте. Из высоты h и времени полёта T
+        // следуют скорость толчка 4h/T и своя гравитация 8h/T² — общая
+        // гравитация при низком подскоке дала бы полёт короче анимации.
+        pet.animator.play(spriteAction, fps: pet.tuning.hopFPS, loops: false)
         pet.animator.restart()
-        // Все кадры прыжка должны успеть показаться за время полёта.
-        flightFPS = pet.animator.fitCycle(into: flight / pet.settings.speedMultiplier)
+        let frames = Double(max(pet.animator.frameCount, 1))
+        let flight = CGFloat(frames / max(pet.tuning.hopFPS, 1)) / pet.speedFactor
+        let height = max(pet.tuning.hopHeight, 0)
+        let up = 4 * height / flight
+        hopGravity = 8 * height / (flight * flight)
+
+        let distance = pet.spriteWidth * pet.tuning.hopLengths
+        pet.velocity = CGVector(dx: distance / flight * pet.facing, dy: up)
+        flightFPS = pet.animator.fitCycle(into: TimeInterval(flight))
     }
 
     func update(_ pet: Pet, dt: TimeInterval) -> BehaviorTransition {
@@ -43,6 +49,7 @@ final class HopState: BehaviorState {
         let step = PhysicsHelper.advanceThroughAir(position: pet.position,
                                                    velocity: pet.velocity,
                                                    dt: CGFloat(dt),
+                                                   gravity: hopGravity,
                                                    in: pet.environment.ledges)
         pet.position = step.position
         pet.velocity = step.velocity

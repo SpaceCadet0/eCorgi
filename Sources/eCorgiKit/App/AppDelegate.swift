@@ -39,6 +39,35 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                                                selector: #selector(settingsChanged),
                                                name: SettingsStore.didChange,
                                                object: nil)
+        ActivationPolicy.observeWindowClosing()
+        runWindowSelfCheckIfRequested()
+    }
+
+    /// Самопроверка окон: `ECORGI_CHECK_WINDOWS=<папка>` открывает настройки и
+    /// «О программе», через две секунды пишет в лог видимые окна и сохраняет
+    /// снимок содержимого окна настроек. Своё окно приложение снимает без
+    /// разрешения на запись экрана, так что проверять можно без рук.
+    private func runWindowSelfCheckIfRequested() {
+        guard let dir = ProcessInfo.processInfo.environment["ECORGI_CHECK_WINDOWS"] else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
+            self?.preferences.show()
+            self?.statusItem.showAboutPanel()
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+            for window in NSApp.windows where window.isVisible {
+                NSLog("eCorgi: окно «\(window.title)» \(Int(window.frame.width))x\(Int(window.frame.height)) заголовок=\(window.styleMask.contains(.titled)) класс=\(type(of: window))")
+            }
+            NSLog("eCorgi: режим \(NSApp.activationPolicy() == .regular ? "обычный" : "строка меню")")
+            guard let prefs = NSApp.windows.first(where: { $0.title == "Настройки eCorgi" }),
+                  let view = prefs.contentView,
+                  let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) else {
+                NSLog("eCorgi: окно настроек не найдено"); return
+            }
+            view.cacheDisplay(in: view.bounds, to: rep)
+            let url = URL(fileURLWithPath: dir).appendingPathComponent("preferences.png")
+            try? rep.representation(using: .png, properties: [:])?.write(to: url)
+            NSLog("eCorgi: снимок настроек \(Int(view.bounds.width))x\(Int(view.bounds.height)) -> \(url.path)")
+        }
     }
 
     public func applicationWillTerminate(_ notification: Notification) {
@@ -53,7 +82,6 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     private func tick(_ dt: TimeInterval) {
         pet.update(dt)
         windowController.sync()
-        preferences.hideIfNeeded()
         // Сонному питомцу хватает и 10 кадров в секунду — экономим батарею.
         loop.targetFPS = pet.desiredFPS
 

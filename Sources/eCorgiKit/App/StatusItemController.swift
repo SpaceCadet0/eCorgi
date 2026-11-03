@@ -161,8 +161,11 @@ final class StatusItemController {
     }
 
     @objc private func showAbout() {
-        NSApp.setActivationPolicy(.regular)
-        NSApp.activate(ignoringOtherApps: true)
+        showAboutPanel()
+    }
+
+    func showAboutPanel() {
+        ActivationPolicy.enterRegularMode()
         NSApp.orderFrontStandardAboutPanel(options: [
             .applicationName: "eCorgi",
             .init(rawValue: "Copyright"): "Настольный корги по мотивам eSheep"

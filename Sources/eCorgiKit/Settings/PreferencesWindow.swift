@@ -51,7 +51,9 @@ struct PreferencesView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 340)
+        // Явный размер: без высоты сгруппированная форма в NSHostingController
+        // сообщала окну нулевой контент, и окно открывалось пустым.
+        .frame(width: 380, height: 330)
         .padding(.vertical, 8)
     }
 }
@@ -84,21 +86,17 @@ final class PreferencesWindowController {
     func show() {
         if window == nil {
             let hosting = NSHostingController(rootView: PreferencesView(settings: settings))
+            hosting.sizingOptions = .preferredContentSize
             let window = NSWindow(contentViewController: hosting)
+            window.setContentSize(NSSize(width: 380, height: 330))
             window.title = "Настройки eCorgi"
             window.styleMask = [.titled, .closable]
             window.isReleasedWhenClosed = false
             self.window = window
         }
-        NSApp.setActivationPolicy(.regular)
-        NSApp.activate(ignoringOtherApps: true)
+        ActivationPolicy.enterRegularMode()
         window?.center()
         window?.makeKeyAndOrderFront(nil)
     }
 
-    /// Возврат в режим «только строка меню» после закрытия настроек.
-    func hideIfNeeded() {
-        guard window?.isVisible != true else { return }
-        NSApp.setActivationPolicy(.accessory)
-    }
 }

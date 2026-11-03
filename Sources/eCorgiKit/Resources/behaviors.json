@@ -5,8 +5,8 @@
     "cursorFleeRadius": 95,
     "cursorCalmRadius": 260,
     "dragFollowStiffness": 14,
-    "walkFPS": 24,
-    "runFPS": 18,
+    "walkFPS": 12,
+    "runFPS": 12,
     "idleFPS": 10,
     "sleepAfterActivity": 120,
 
@@ -28,7 +28,8 @@
     "hangSwayPeriod": 1.8,
 
     "hopLengths": 1,
-    "hopSpeed": 440,
+    "hopHeight": 10,
+    "hopFPS": 15,
     "jumpSpeed": 145,
     "jumpLift": 400,
     "jumpAirDrag": 0.55
