@@ -79,8 +79,8 @@ public struct BehaviorTuning: Codable, Sendable {
     public var cursorCalmRadius: CGFloat = 240
     public var dragFollowStiffness: CGFloat = 14
     public var walkFPS: Double = 12
-    public var runFPS: Double = 18
-    public var idleFPS: Double = 5
+    public var runFPS: Double = 12
+    public var idleFPS: Double = 12
 
     /// Сколько секунд деятельной жизни (ходьба, бег, лазание, подвес, возня)
     /// питомец выдерживает, прежде чем уйти спать. Стояние и сидение не в счёт.
@@ -127,7 +127,7 @@ public struct BehaviorTuning: Codable, Sendable {
     public var hopHeight: CGFloat = 10
     /// Темп анимации подскока. Он же задаёт время полёта: подскок длится
     /// ровно один цикл кадров, поэтому анимация всегда успевает пройти целиком.
-    public var hopFPS: Double = 15
+    public var hopFPS: Double = 12
     /// На сколько своих длин питомец перелетает в подскоке.
     /// Ноль — подскок строго вверх, как было раньше.
     public var hopLengths: CGFloat = 3

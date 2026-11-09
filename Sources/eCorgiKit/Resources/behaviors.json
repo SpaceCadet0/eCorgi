@@ -7,7 +7,9 @@
     "dragFollowStiffness": 14,
     "walkFPS": 12,
     "runFPS": 12,
-    "idleFPS": 10,
+    "idleFPS": 12,
+    "jumpFPS": 12,
+    "hopFPS": 12,
     "sleepAfterActivity": 120,
 
     "climbSpeed": 110,
@@ -27,11 +29,11 @@
     "hangSwayAmplitude": 0.13,
     "hangSwayPeriod": 1.8,
 
-    "hopLengths": 1,
+    "hopLengths": 3,
     "hopHeight": 10,
-    "hopFPS": 15,
+    "hopLift": 10,
     "jumpSpeed": 145,
-    "jumpLift": 400,
+    "jumpLift": 200,
     "jumpAirDrag": 0.55
   },
   "states": {
@@ -46,7 +48,7 @@
         { "state": "climb",    "weight": 8,  "condition": "nearWall" },
         { "state": "hang",     "weight": 6,  "condition": "atLedgeEdge" },
         { "state": "jumpDown", "weight": 10, "condition": "canJumpDown" },
-        { "state": "hop",      "weight": 12, "condition": "energetic" }
+        { "state": "hop",      "weight": 90, "condition": "energetic" }
       ]
     },
     "walk": {
@@ -57,7 +59,7 @@
         { "state": "walk",    "weight": 20 },
         { "state": "sit",     "weight": 20 },
         { "state": "scratch", "weight": 15 },
-        { "state": "hop",     "weight": 10, "condition": "energetic" }
+        { "state": "hop",     "weight": 90, "condition": "energetic" }
       ]
     },
     "sit": {

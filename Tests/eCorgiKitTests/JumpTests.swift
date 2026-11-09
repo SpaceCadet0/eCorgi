@@ -293,8 +293,13 @@ final class JumpTests: XCTestCase {
 
         XCTAssertTrue(machine.isSatisfied(.energetic, pet: pet), "Свежий питомец полон сил")
 
-        pet.force(.walk)
-        for _ in 0..<Int(30 * config.tuning.sleepAfterActivity * 0.6) { pet.update(1.0 / 30) }
+        // Держим его в ходьбе всё время: сам автомат после ходьбы может
+        // выбрать сидение или стойку (это отдых), и тогда исход зависел бы
+        // от весов переходов в behaviors.json, которые как раз крутят.
+        for _ in 0..<Int(30 * config.tuning.sleepAfterActivity * 0.6) {
+            if pet.currentBehavior != .walk { pet.force(.walk) }
+            pet.update(1.0 / 30)
+        }
         XCTAssertFalse(machine.isSatisfied(.energetic, pet: pet), "Набегавшись, прыгать он не рвётся")
     }
 }
