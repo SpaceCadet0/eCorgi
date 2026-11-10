@@ -6,6 +6,8 @@
 	<string>ru</string>
 	<key>CFBundleExecutable</key>
 	<string>eCorgi</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
 	<key>CFBundleIdentifier</key>
 	<string>com.ecorgi.eCorgi</string>
 	<key>CFBundleInfoDictionaryVersion</key>
@@ -25,9 +27,11 @@
 	<!-- Фоновое приложение: без иконки в Dock и без пункта в Cmd-Tab -->
 	<key>LSUIElement</key>
 	<true/>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.entertainment</string>
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>NSHumanReadableCopyright</key>
-	<string>eCorgi — настольный корги по мотивам eSheep</string>
+	<string>Настольный корги по мотивам eSheep</string>
 </dict>
 </plist>

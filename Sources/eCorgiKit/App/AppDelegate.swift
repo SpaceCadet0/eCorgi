@@ -28,7 +28,10 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 
         windowController = PetWindowController(pet: pet, atlas: atlas, settings: settings)
         preferences = PreferencesWindowController(settings: settings)
-        statusItem = StatusItemController(pet: pet, preferences: preferences)
+        statusItem = StatusItemController(pet: pet, preferences: preferences,
+                                          isPetVisible: { [weak self] in self?.windowController.isVisible ?? true },
+                                          setPetVisible: { [weak self] in self?.setPetVisible($0) })
+        windowController.contextMenu = statusItem.menu
 
         appliedScale = settings.scale
 
@@ -88,6 +91,17 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 
     public func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         false
+    }
+
+    /// Спрятанный питомец не тратит ничего: игровой цикл останавливается
+    /// вместе с опросом окон и курсора.
+    private func setPetVisible(_ visible: Bool) {
+        windowController.setVisible(visible)
+        if visible {
+            if !loop.isRunning { loop.start() }
+        } else {
+            loop.stop()
+        }
     }
 
     private func tick(_ dt: TimeInterval) {

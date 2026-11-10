@@ -37,7 +37,10 @@ final class HopState: BehaviorState {
 
         let distance = pet.spriteWidth * pet.tuning.hopLengths
         pet.velocity = CGVector(dx: distance / flight * pet.facing, dy: up)
-        flightFPS = pet.animator.fitCycle(into: TimeInterval(flight))
+        // Аниматор сам ускоряется настройкой скорости, поэтому цикл
+        // подгоняется под полёт в его собственном времени. Иначе при
+        // скорости 2× анимация кончалась на середине дуги.
+        flightFPS = pet.animator.fitCycle(into: TimeInterval(flight * pet.speedFactor))
     }
 
     func update(_ pet: Pet, dt: TimeInterval) -> BehaviorTransition {

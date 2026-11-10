@@ -18,6 +18,7 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN_DIR/eCorgi" "$APP/Contents/MacOS/eCorgi"
 cp -R "$BIN_DIR/eCorgi_eCorgiKit.bundle" "$APP/Contents/Resources/"
 cp "$ROOT/Resources/Info.plist" "$APP/Contents/Info.plist"
+cp "$ROOT/Resources/AppIcon.icns" "$APP/Contents/Resources/AppIcon.icns"
 
 # Скачанные спрайты приносят com.apple.quarantine, а codesign отказывается
 # подписывать бандл с расширенными атрибутами.

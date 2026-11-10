@@ -165,8 +165,7 @@ public struct BehaviorTuning: Codable, Sendable {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         let d = BehaviorTuning()
         func number<T: Decodable>(_ key: CodingKeys, _ fallback: T) -> T {
-            guard let decoded = try? c.decodeIfPresent(T.self, forKey: key) else { return fallback }
-            return decoded ?? fallback
+            (try? c.decodeIfPresent(T.self, forKey: key)) ?? fallback
         }
         walkSpeed = number(.walkSpeed, d.walkSpeed)
         runSpeed = number(.runSpeed, d.runSpeed)

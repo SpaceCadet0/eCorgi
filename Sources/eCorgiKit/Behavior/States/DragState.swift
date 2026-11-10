@@ -7,7 +7,8 @@ final class DragState: BehaviorState {
     let spriteAction: SpriteAction = .drag
     let previewFPS: Double = 8
     /// Первый проход показывает, как питомца подхватили, а дальше он просто
-    /// болтает лапами — за это отвечают два последних кадра.
+    /// болтает лапами — за это отвечают два последних кадра. В нынешнем паке
+    /// кадров всего два (`drag_06`, `drag_07`), так что вступления нет.
     let animationTail: Int = 2
     /// Выход отсюда — только по отпусканию кнопки мыши (см. Pet.applyDirectorOverrides).
     let isInterruptibleByTimer = false

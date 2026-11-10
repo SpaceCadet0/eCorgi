@@ -9,6 +9,11 @@ let package = Package(
         .target(
             name: "eCorgiKit",
             path: "Sources/eCorgiKit",
+            // Черновики и запасные кадры лежат рядом с паком, но в сборку не идут.
+            exclude: [
+                "Resources/Sprites\u{00A0}— reserve",
+                "Resources/run"
+            ],
             resources: [
                 .copy("Resources/Sprites"),
                 .process("Resources/behaviors.json")

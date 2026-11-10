@@ -91,7 +91,9 @@ final class TirednessTests: XCTestCase {
 
         XCTAssertEqual(pet.activeTime, 0, accuracy: 0.001, "Сидение — это отдых, а не активность")
         XCTAssertFalse(pet.isTired)
-        XCTAssertEqual(pet.currentBehavior, .sit)
+        // Сценка сидения играется один раз, дальше питомец отдыхает как хочет —
+        // важно, что он не начал двигаться.
+        XCTAssertFalse([.walk, .runFromCursor, .climb, .hop].contains(pet.currentBehavior))
     }
 
     func testSleepClearsTheTiredness() {

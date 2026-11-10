@@ -160,22 +160,42 @@ public final class Pet {
     /// постоять на полке, которой уже нет.
     private var environmentUrgency: ScreenEnvironment.Urgency {
         if isDragged { return .high }
+        // Подскок с пола — исключение: он низкий и кончается там же, где
+        // начался, так что опрашивать окна семь раз в секунду ради него незачем.
+        if support == nil, currentBehavior == .hop, lastSupportKind == .ground { return .normal }
         if support == nil || support?.kind == .windowTop { return .high }
         return Pet.ambient.contains(currentBehavior) && abs(velocity.dx) < 1 ? .low : .normal
     }
 
     /// Частота кадров, которой сейчас достаточно: пока питомец стоит или спит,
     /// 30 fps ни к чему.
+    ///
+    /// Нижняя граница — удвоенный темп анимации. Если тиков меньше или они
+    /// не кратны кадрам (12 кадров на 15 тиков), кадры держатся на экране
+    /// то один тик, то два, и анимация идёт рывками.
     public var desiredFPS: Double {
-        switch currentBehavior {
-        case .sleep, .sit:                       return 10
-        case .idle, .scratch, .settleDown, .wakeUp: return 15
-        case .hang:                   return 20
-        // Прыжок и падение короткие, а кадров в них много: при 30 тиках в
-        // секунду часть кадров просто не успела бы попасть на экран.
-        case .hop, .jumpDown, .fall:  return 60
-        default:                      return 30
+        let motion: Double
+        if previewBehavior != nil {
+            motion = 10
+        } else {
+            switch currentBehavior {
+            case .sleep, .sit, .idle, .scratch, .settleDown, .wakeUp, .land:
+                motion = 10
+            case .hang:
+                motion = 20
+            // Прыжок и падение короткие и быстрые: при 30 тиках в секунду
+            // полёт шёл бы заметными ступеньками. Подскок же плавный и
+            // медленный — ему хватает обычной частоты, пока он не разогнался.
+            case .jumpDown, .fall:
+                motion = 60
+            case .hop:
+                motion = hypot(velocity.dx, velocity.dy) > 300 ? 60 : 30
+            default:
+                motion = 30
+            }
         }
+        let animation = (animator.fps * settings.speedMultiplier * 2).rounded(.up)
+        return min(60, max(motion, animation))
     }
 
     /// Принудительная смена поведения — из меню статус-бара или по событию мыши.
@@ -187,7 +207,11 @@ public final class Pet {
 
     private func refreshSupport() {
         support = PhysicsHelper.support(at: position, in: environment.ledges)
+        if let support { lastSupportKind = support.kind }
     }
+
+    /// На чём питомец стоял в последний раз — пол или окно.
+    private var lastSupportKind: Ledge.Kind?
 
     /// Счётчик обнуляется только на полу: в прыжке и на подвесе опоры нет,
     /// но это ещё не значит, что питомец спустился.

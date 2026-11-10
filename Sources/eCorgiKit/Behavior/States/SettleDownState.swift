@@ -13,14 +13,21 @@ final class SettleDownState: BehaviorState {
     let spriteAction: SpriteAction = .sitDown
     let previewFPS: Double = 8
 
+    /// Переход длится ровно столько, сколько его анимация: таймер из конфига
+    /// обрывал её на полпути при медленном темпе и держал последний кадр при
+    /// быстром. Таймер остаётся страховкой для пака с единственным кадром.
+    private var playsToEnd = false
+    var isInterruptibleByTimer: Bool { !playsToEnd }
+
     func enter(_ pet: Pet) {
         pet.velocity = .zero
         pet.animator.play(spriteAction, fps: 8, loops: false)
         pet.animator.restart()
+        playsToEnd = pet.animator.frameCount > 1
     }
 
     func update(_ pet: Pet, dt: TimeInterval) -> BehaviorTransition {
         pet.animator.play(spriteAction, fps: 8, loops: false)
-        return .stay
+        return playsToEnd && pet.animator.isFinished ? .done : .stay
     }
 }

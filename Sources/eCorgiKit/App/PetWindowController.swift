@@ -16,6 +16,12 @@ public final class PetWindowController {
     /// Смещение точки захвата относительно лап — чтобы питомец не прыгал под курсор.
     private var dragGrabOffset: CGSize = .zero
 
+    /// Меню по правому щелчку на питомце — то же, что в строке меню.
+    public var contextMenu: NSMenu?
+
+    /// Виден ли питомец. Спрятанного не видно ни на одном рабочем столе.
+    public private(set) var isVisible = true
+
     public init(pet: Pet, atlas: SpriteAtlas, settings: SettingsStore = .shared) {
         self.pet = pet
         self.settings = settings
@@ -44,6 +50,10 @@ public final class PetWindowController {
         view.onMouseDown = { [weak self] location in self?.beginDrag(at: location) }
         view.onMouseDragged = { [weak self] location in self?.continueDrag(at: location) }
         view.onMouseUp = { [weak self] _ in self?.endDrag() }
+        view.onRightMouseDown = { [weak self] event in
+            guard let self, let menu = self.contextMenu else { return }
+            NSMenu.popUpContextMenu(menu, with: event, for: self.view)
+        }
 
         panel.orderFrontRegardless()
         sync()
@@ -122,6 +132,19 @@ public final class PetWindowController {
     private func endDrag() {
         isDragging = false
         pet.isDragged = false
+    }
+
+    public func setVisible(_ visible: Bool) {
+        guard visible != isVisible else { return }
+        isVisible = visible
+        if visible {
+            panel.orderFrontRegardless()
+            sync()
+        } else {
+            // Перетаскивание могло быть в разгаре — отпускаем питомца.
+            endDrag()
+            panel.orderOut(nil)
+        }
     }
 
     public func close() {

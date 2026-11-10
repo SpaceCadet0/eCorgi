@@ -345,7 +345,8 @@ final class JumpAnimationTests: XCTestCase {
         pet.update(0)
         pet.force(.hop)
         pet.update(1.0 / 60)
-        XCTAssertGreaterThanOrEqual(pet.desiredFPS, 60, "На время прыжка цикл ускоряется")
+        XCTAssertGreaterThanOrEqual(pet.desiredFPS, pet.animator.fps * 2,
+                                    "На каждый кадр подскока приходится не меньше двух тиков")
     }
 
     func testFitCycleSpreadsFramesOverTheGivenTime() {

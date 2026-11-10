@@ -19,6 +19,8 @@ final class PetView: NSView {
     var onMouseDown: ((CGPoint) -> Void)?
     var onMouseDragged: ((CGPoint) -> Void)?
     var onMouseUp: ((CGPoint) -> Void)?
+    /// Щелчок правой кнопкой по питомцу — контроллер показывает меню.
+    var onRightMouseDown: ((NSEvent) -> Void)?
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -65,7 +67,24 @@ final class PetView: NSView {
         spriteLayer.bounds = CGRect(origin: .zero, size: size)
         spriteLayer.position = CGPoint(x: bounds.width / 2, y: spriteBottomInset)
         spriteLayer.transform = spriteTransform(height: size.height)
+        spriteLayer.magnificationFilter = magnificationFilter
         CATransaction.commit()
+    }
+
+    /// Кадры нарисованы в одинарном разрешении, и на Retina каждый пиксель
+    /// растягивается вдвое. Линейная интерполяция при этом мылит контур;
+    /// при целой кратности честнее просто удвоить пиксели — картинка остаётся
+    /// такой же резкой, как исходный кадр. При дробном масштабе и во время
+    /// покачивания удвоение дало бы лесенку, там остаётся сглаживание.
+    private var magnificationFilter: CALayerContentsFilter {
+        let factor = scale * (window?.backingScaleFactor ?? NSScreen.main?.backingScaleFactor ?? 2)
+        let isWhole = abs(factor - factor.rounded()) < 0.01
+        return isWhole && sway == 0 ? .nearest : .linear
+    }
+
+    override func viewDidChangeBackingProperties() {
+        super.viewDidChangeBackingProperties()
+        layoutSprite()
     }
 
     /// Отражение по горизонтали (вместо отдельных кадров «влево») плюс
@@ -122,4 +141,5 @@ final class PetView: NSView {
     override func mouseDown(with event: NSEvent) { onMouseDown?(NSEvent.mouseLocation) }
     override func mouseDragged(with event: NSEvent) { onMouseDragged?(NSEvent.mouseLocation) }
     override func mouseUp(with event: NSEvent) { onMouseUp?(NSEvent.mouseLocation) }
+    override func rightMouseDown(with event: NSEvent) { onRightMouseDown?(event) }
 }

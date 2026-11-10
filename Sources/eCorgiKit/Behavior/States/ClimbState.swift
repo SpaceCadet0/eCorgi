@@ -5,7 +5,11 @@ import Foundation
 final class ClimbState: BehaviorState {
     let id: BehaviorID = .climb
     let spriteAction: SpriteAction = .climb
-    let previewFPS: Double = 10
+    let previewFPS: Double = 8
+    /// Первые кадры — питомец встаёт на задние лапы у стены, и только два
+    /// последних — сам подъём. Без хвоста цикл каждые полсекунды возвращал
+    /// лезущего питомца в стойку на земле.
+    let animationTail: Int = 2
     /// Лазание заканчивается вершиной или сорвавшейся опорой, а не таймером.
     let isInterruptibleByTimer = false
 
@@ -14,7 +18,8 @@ final class ClimbState: BehaviorState {
         if pet.climbTarget == nil { pet.climbTarget = pet.climbableWall() }
         pet.velocity = .zero
         if let wall = pet.climbTarget { pet.facing = wall.side.facing }
-        pet.animator.play(spriteAction, fps: 10)
+        pet.animator.play(spriteAction, fps: previewFPS, tail: animationTail)
+        pet.animator.restart()
     }
 
     func update(_ pet: Pet, dt: TimeInterval) -> BehaviorTransition {
@@ -25,7 +30,7 @@ final class ClimbState: BehaviorState {
             return pet.support == nil ? .switchTo(.fall) : .switchTo(.idle)
         }
 
-        pet.animator.play(spriteAction, fps: 10)
+        pet.animator.play(spriteAction, fps: previewFPS, tail: animationTail)
         pet.facing = wall.side.facing
         pet.position.x = pet.bodyX(besideEdgeAt: wall.x, side: wall.side)
         pet.position.y += pet.tuning.climbSpeed * pet.speedFactor * CGFloat(dt)

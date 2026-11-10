@@ -77,7 +77,8 @@ final class TailLoopTests: XCTestCase {
 
     func testDragDeclaresATwoFrameTail() {
         XCTAssertEqual(Pet.animations[.drag]?.tail, 2, "Перетаскивание крутит два последних кадра")
-        for id in BehaviorID.allCases where id != .drag {
+        XCTAssertEqual(Pet.animations[.climb]?.tail, 2, "Лазание крутит два кадра подъёма после вступления")
+        for id in BehaviorID.allCases where id != .drag && id != .climb {
             XCTAssertEqual(Pet.animations[id]?.tail, 0, "У \(id.rawValue) хвост не задан")
         }
     }
